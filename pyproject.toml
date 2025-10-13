@@ -1,0 +1,135 @@
+[project]
+name = "ai-assistant"
+version = "0.1.0"
+description = "AI/ML Research Chatbot Assistant with LangGraph and FastAPI"
+authors = [
+    { name = "RM", email = "23095125+roman-mg@users.noreply.github.com" }
+]
+readme = "README.md"
+
+[tool.poe.tasks]
+black-check = "poetry run black --check --config pyproject.toml ./"
+isort-check = "poetry run isort --check-only --settings pyproject.toml ./"
+ruff-check = "poetry run ruff --config pyproject.toml check ./"
+mypy-check = "poetry run mypy --config-file pyproject.toml ./"
+black-format = "poetry run black --config pyproject.toml ./"
+isort-format = "poetry run isort --settings pyproject.toml ./"
+ruff-format = "poetry run ruff --config pyproject.toml format ./"
+check = ["black-check", "isort-check", "ruff-check"]
+hard-check = ["check", "mypy-check"]
+format = ["black-format", "isort-format", "ruff-format"]
+test = "poetry run pytest -c pyproject.toml --cov-report=html tests/"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+langgraph="^0.6.10"
+fastapi="^0.119.0"
+uvicorn="^0.32.0"
+openai="^1.50.0"
+faiss-cpu="^1.8.0"
+langchain="^0.3.0"
+langchain-openai="^0.2.0"
+langchain-community="^0.3.0"
+pydantic="^2.10.0"
+pydantic-settings="^2.0.0"
+httpx="^0.27.0"
+python-multipart="^0.0.12"
+python-dotenv="^1.0.0"
+arxiv="^2.1.0"
+beautifulsoup4="^4.12.0"
+requests="^2.32.0"
+numpy="^1.26.0"
+tiktoken="^0.7.0"
+websockets="^13.0"
+aiofiles ="^24.0.0"
+loguru = "^0.7.3"
+
+[tool.poetry.group.dev.dependencies]
+poethepoet = "^0.33.1"
+pytest = "^8.3.5"
+pytest-asyncio = "^0.26.0"
+pytest-env = "^1.1.5"
+pytest-html = "^4.1.1"
+pytest-cov = "^4.1.0"
+black = "^25.1.0"
+isort = "^6.0.1"
+ruff = "^0.11.5"
+mypy = "^1.15.0"
+pre-commit="^4.0.0"
+
+[tool.black]
+target-version = ["py312"]
+color = true
+line-length = 120
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+    | \.github
+    | \.idea
+    | \.mypy_cache
+    | \.ruff_cache
+    | \.venv
+    | build
+    | venv
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 120
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+known_first_party = ["plugger"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+lint.select = [
+    "A", # flake8-builtins
+    "B", # flake8-bugbear
+    "C", # flake8-comprehensions
+    "E", # pycodestyle errors
+    "F", # pyflakes
+    "I", # isort
+    "N", # pep8-naming
+    "Q", # flake8-quotes
+    "W", # pycodestyle warnings
+    "ANN", # flake8-annotations
+    "F401", # unused-import
+    "RET", # flake8-return
+    "SIM", # flake8-simplify
+    "TID", # flake8-tidy-imports
+    "T20", # flake8-print
+    "UP", # pyupgrade
+]
+lint.ignore = [
+    "E501", # line too long, handled by black
+    "ANN002", # Missing type annotation for *args
+    "ANN003", # Missing type annotation for **kwargs
+    "ANN204", # Missing type annotation for special methods
+    "ANN401", # Dynamically typed expressions (typing.Any) are disallowed in `*args/**kwargs`
+]
+exclude = [
+    ".git",
+    ".github",
+    ".idea",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".venv",
+    "build",
+    "venv",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+python_version = 3.12
+color_output = true
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

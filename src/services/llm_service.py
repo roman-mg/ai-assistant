@@ -1,32 +1,26 @@
 """Shared LLM and embeddings service for the entire project."""
 
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.embeddings import Embeddings
 from loguru import logger
 
-from ..config.settings import settings
+from ..di.fabric import create_embeddings_model_instance, create_llm_instance
 
 
 class LLMService:
     """Shared LLM and embeddings service."""
 
     def __init__(self):
-        self._chat_llm: ChatOpenAI = ChatOpenAI(
-            model=settings.openai.model,
-            api_key=settings.openai.api_key,
-            temperature=0.3,
-        )
-        self._embeddings_model: OpenAIEmbeddings = OpenAIEmbeddings(
-            model=settings.openai.embedding_model,
-            api_key=settings.openai.api_key,
-        )
+        self._chat_llm: BaseChatModel = create_llm_instance()
+        self._embeddings_model: Embeddings = create_embeddings_model_instance()
         logger.info("LLM Service initialized")
 
     @property
-    def chat_llm(self) -> ChatOpenAI:
+    def chat_llm(self) -> BaseChatModel:
         return self._chat_llm
 
     @property
-    def embeddings_model(self) -> OpenAIEmbeddings:
+    def embeddings_model(self) -> Embeddings:
         return self._embeddings_model
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:

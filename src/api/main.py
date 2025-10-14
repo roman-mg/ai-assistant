@@ -43,7 +43,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# In-memory conversation storage (in production, use a proper database)
+# In-memory conversation storage. TODO: in production, use a proper database
 conversations: dict[str, list[dict[str, str]]] = {}
 
 

@@ -1,5 +1,7 @@
 """Configuration management using Pydantic settings."""
 
+from enum import StrEnum
+
 from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -19,6 +21,18 @@ class OpenAISettings(BaseSettings):
         default="text-embedding-3-small",
         description="OpenAI model to use for embeddings",
     )
+
+
+class ModelSettings(BaseSettings):
+    class ModelType(StrEnum):
+        openai = "openai"
+
+    model_config = SettingsConfigDict(env_prefix="MODEL_", env_file=".env", extra="ignore", case_sensitive=False)
+    model_type: ModelType = Field(
+        default="openai",
+        description="Specify models set for LLM and embeddings",
+    )
+    openai: OpenAISettings = OpenAISettings()
 
 
 class ApplicationSettings(BaseSettings):
@@ -109,9 +123,9 @@ class Settings(BaseSettings):
     """Application settings with default values."""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", case_sensitive=False)
-    openai: OpenAISettings = OpenAISettings()
     app: ApplicationSettings = ApplicationSettings()
     server: ServerSettings = ServerSettings()
+    model: ModelSettings = ModelSettings()
     researcher: ResearcherSettings = ResearcherSettings()
     vector_store: VectorStoreSettings = VectorStoreSettings()
     web_search: WebSearchSettings = WebSearchSettings()

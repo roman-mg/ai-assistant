@@ -12,8 +12,6 @@ def main() -> None:
     try:
         logger.info(f"Starting {settings.app.name} v{settings.app.version}")
         logger.info(f"Debug mode: {settings.app.debug}")
-        logger.info(f"OpenAI model: {settings.openai.model}")
-        logger.info(f"Vector store path: {settings.vector_store.faiss_index_path}")
 
         uvicorn.run(
             "src.api.main:app",

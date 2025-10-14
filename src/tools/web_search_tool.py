@@ -19,10 +19,6 @@ class WebSearchInput(BaseModel):
         ge=1,
         le=20,
     )
-    search_engine: str = Field(
-        default="duckduckgo",
-        description="Search engine to use (duckduckgo, google)",
-    )
 
 
 class WebSearchTool(BaseTool):

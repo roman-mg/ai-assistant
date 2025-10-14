@@ -107,6 +107,10 @@ class WebSearchSettings(BaseSettings):
         default=5,
         description="Maximum web search results to process",
     )
+    search_engine: str = Field(
+        default="duckduckgo",
+        description="Search engine to use",
+    )
 
 
 class ConversationSettings(BaseSettings):

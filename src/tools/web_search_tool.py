@@ -39,8 +39,7 @@ class WebSearchTool(BaseTool):
     def _run(
         self,
         query: str,
-        max_results: int = 5,
-        search_engine: str = "duckduckgo",
+        max_results: int = 5
     ) -> list[dict]:
         """Perform web search and return results."""
         if not settings.web_search.enabled:
@@ -50,11 +49,12 @@ class WebSearchTool(BaseTool):
         try:
             logger.info(f"Performing web search for: {query}")
 
-            if search_engine == "duckduckgo":
-                results = self._search_duckduckgo(query, max_results)
-            else:
-                logger.warning(f"Unsupported search engine: {search_engine}")
-                return []
+            match settings.web_search.search_engine:
+                case "duckduckgo":
+                    results = self._search_duckduckgo(query, max_results)
+                case _:
+                    logger.warning(f"Unsupported search engine: {settings.web_search.search_engine}")
+                    return []
 
             logger.info(f"Found {len(results)} web search results")
             return results

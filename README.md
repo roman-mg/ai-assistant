@@ -37,22 +37,19 @@ The application uses default configuration values, but you can override them by 
 
 ```bash
 # Set your OpenAI API key (required)
-export OPENAI_API_KEY="your_openai_api_key_here"
+export MODEL_OPENAI_API_KEY="your_openai_api_key_here"
 
 # Optional: Override other settings
-export OPENAI_MODEL="gpt-4o"
-export MAX_PAPERS_PER_QUERY=10
-export FAISS_INDEX_PATH="./data/faiss_index"
+export MODEL_OPENAI_MODEL="gpt-4o"
+export RESEARCHER_MAX_PAPERS_PER_QUERY=10
+export VECTOR_STORE_FAISS_INDEX_PATH="./data/faiss_index"
 ```
 
 ### 3. Run the Application
 
 ```bash
 # Quick start with the startup script
-python start.py
-
-# Or run directly
-python -m src.main
+python src.main
 
 # Or run the main module
 python src/main.py
@@ -144,6 +141,8 @@ src/
 │   └── main.py
 ├── config/           # Configuration management
 │   └── settings.py
+├── di/               # Dependency injection
+│   └── fabric.py
 ├── models/           # Pydantic schemas
 │   └── schemas.py
 ├── services/         # Shared services
@@ -154,7 +153,7 @@ src/
 │   └── paper_analyzer.py
 ├── vectorstore/      # FAISS vector store
 │   └── faiss_store.py
-└── main.py          # Application entry point
+└── main.py           # Application entry point
 ```
 
 ## Development
@@ -168,14 +167,11 @@ This project uses:
 - **Loguru** for elegant logging
 
 ```bash
+# Check codestyle
+poe hard-check
+
 # Format code
-black src/
-
-# Lint code
-ruff check src/
-
-# Type check
-mypy src/
+poe format
 ```
 
 ### Running Tests
@@ -185,20 +181,20 @@ mypy src/
 pip install -e ".[dev]"
 
 # Run tests
-pytest
+poe test
 ```
 
 ## Configuration
 
 All configuration is managed through environment variables with sensible defaults. Key settings:
 
-- `OPENAI_API_KEY`: Your OpenAI API key (required)
-- `OPENAI_MODEL`: OpenAI model to use (default: gpt-4o)
-- `OPENAI_EMBEDDING_MODEL`: OpenAI embedding model (default: text-embedding-3-small)
-- `MAX_PAPERS_PER_QUERY`: Maximum papers to return per query (default: 10)
-- `FAISS_INDEX_PATH`: Path to store FAISS index (default: ./data/faiss_index)
+- `MODEL_OPENAI_API_KEY`: Your OpenAI API key (required)
+- `MODEL_OPENAI_MODEL`: OpenAI model to use (default: gpt-4o)
+- `MODEL_OPENAI_EMBEDDING_MODEL`: OpenAI embedding model (default: text-embedding-3-small)
+- `RESEARCHER_MAX_PAPERS_PER_QUERY`: Maximum papers to return per query (default: 10)
+- `VECTOR_STORE_FAISS_INDEX_PATH`: Path to store FAISS index (default: ./data/faiss_index)
 - `WEB_SEARCH_ENABLED`: Enable web search functionality (default: true)
-- `DEBUG`: Enable debug mode (default: false)
+- `APP_DEBUG`: Enable debug mode (default: false)
 
 ## Architecture
 

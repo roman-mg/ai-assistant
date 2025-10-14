@@ -14,7 +14,6 @@ class ModelType(StrEnum):
 class OpenAISettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="OPENAI_", env_file=".env", extra="ignore", case_sensitive=False)
     api_key: str = Field(
-        default="sk-your-openai-api-key-here",
         description="OpenAI API key for LLM and embeddings",
     )
     model: str = Field(
@@ -28,7 +27,6 @@ class OpenAISettings(BaseSettings):
 
 
 class ModelSettings(BaseSettings):
-
     model_config = SettingsConfigDict(env_prefix="MODEL_", env_file=".env", extra="ignore", case_sensitive=False)
     model_type: ModelType = Field(
         default="openai",

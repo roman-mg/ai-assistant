@@ -278,7 +278,7 @@ class ResearcherAgent:
             web_tool = WebSearchTool()
             web_results = await web_tool._arun(
                 query=query,
-                max_results=settings.max_results,
+                max_results=settings.web_search.max_results,
             )
 
             # Store web results in state for response generation

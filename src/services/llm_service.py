@@ -3,39 +3,30 @@
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from loguru import logger
 
-from src.config.settings import settings
+from ..config.settings import settings
 
 
 class LLMService:
     """Shared LLM and embeddings service."""
 
     def __init__(self):
-        """Initialize the LLM service with shared instances."""
-        self._chat_llm: ChatOpenAI | None = None
-        self._embeddings_model: OpenAIEmbeddings | None = None
+        self._chat_llm: ChatOpenAI = ChatOpenAI(
+            model=settings.openai.model,
+            api_key=settings.openai.api_key,
+            temperature=0.3,
+        )
+        self._embeddings_model: OpenAIEmbeddings = OpenAIEmbeddings(
+            model=settings.openai.embedding_model,
+            api_key=settings.openai.api_key,
+        )
         logger.info("LLM Service initialized")
 
     @property
     def chat_llm(self) -> ChatOpenAI:
-        """Get the shared chat LLM instance."""
-        if self._chat_llm is None:
-            self._chat_llm = ChatOpenAI(
-                model=settings.openai_model,
-                api_key=settings.openai_api_key,
-                temperature=0.3,
-            )
-            logger.info(f"Created shared chat LLM: {settings.openai_model}")
         return self._chat_llm
 
     @property
     def embeddings_model(self) -> OpenAIEmbeddings:
-        """Get the shared embeddings model instance."""
-        if self._embeddings_model is None:
-            self._embeddings_model = OpenAIEmbeddings(
-                model=settings.openai_embedding_model,
-                api_key=settings.openai_api_key,
-            )
-            logger.info(f"Created shared embeddings model: {settings.openai_embedding_model}")
         return self._embeddings_model
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
@@ -75,12 +66,6 @@ class LLMService:
         except Exception as e:
             logger.error(f"Error async invoking chat LLM: {e}")
             raise
-
-    def reset(self) -> None:
-        """Reset the LLM instances (useful for testing)."""
-        self._chat_llm = None
-        self._embeddings_model = None
-        logger.info("LLM Service reset")
 
 
 # Global LLM service instance

@@ -6,8 +6,7 @@ from langchain.tools import BaseTool
 from loguru import logger
 from pydantic import BaseModel, Field
 
-from src.config.settings import settings
-from src.models.schemas import Paper
+from ..config.settings import settings
 
 
 class WebSearchInput(BaseModel):
@@ -44,13 +43,13 @@ class WebSearchTool(BaseTool):
         search_engine: str = "duckduckgo",
     ) -> list[dict]:
         """Perform web search and return results."""
-        if not settings.web_search_enabled:
+        if not settings.web_search.enabled:
             logger.info("Web search is disabled")
             return []
 
         try:
             logger.info(f"Performing web search for: {query}")
-            
+
             if search_engine == "duckduckgo":
                 results = self._search_duckduckgo(query, max_results)
             else:
@@ -78,28 +77,32 @@ class WebSearchTool(BaseTool):
 
             response = requests.get(url, params=params, timeout=10)
             response.raise_for_status()
-            
+
             data = response.json()
             results = []
 
             # Extract instant answer
             if data.get("Abstract"):
-                results.append({
-                    "title": data.get("Heading", "DuckDuckGo Instant Answer"),
-                    "url": data.get("AbstractURL", ""),
-                    "snippet": data.get("Abstract", ""),
-                    "source": "DuckDuckGo Instant Answer",
-                })
+                results.append(
+                    {
+                        "title": data.get("Heading", "DuckDuckGo Instant Answer"),
+                        "url": data.get("AbstractURL", ""),
+                        "snippet": data.get("Abstract", ""),
+                        "source": "DuckDuckGo Instant Answer",
+                    }
+                )
 
             # Extract related topics
-            for topic in data.get("RelatedTopics", [])[:max_results - len(results)]:
+            for topic in data.get("RelatedTopics", [])[: max_results - len(results)]:
                 if isinstance(topic, dict) and topic.get("Text"):
-                    results.append({
-                        "title": topic.get("Text", "").split(" - ")[0],
-                        "url": topic.get("FirstURL", ""),
-                        "snippet": topic.get("Text", ""),
-                        "source": "DuckDuckGo Related Topics",
-                    })
+                    results.append(
+                        {
+                            "title": topic.get("Text", "").split(" - ")[0],
+                            "url": topic.get("FirstURL", ""),
+                            "snippet": topic.get("Text", ""),
+                            "source": "DuckDuckGo Related Topics",
+                        }
+                    )
 
             return results[:max_results]
 
@@ -147,13 +150,13 @@ class AcademicSearchTool(BaseTool):
         """Search academic websites."""
         try:
             logger.info(f"Performing academic search for: {query}")
-            
+
             results = []
-            
+
             # Search Google Scholar (simplified)
             scholar_results = self._search_google_scholar(query, max_results // 2)
             results.extend(scholar_results)
-            
+
             # Search ResearchGate (simplified)
             rg_results = self._search_researchgate(query, max_results - len(results))
             results.extend(rg_results)
@@ -172,17 +175,15 @@ class AcademicSearchTool(BaseTool):
             # In production, you might want to use a proper Google Scholar API
             url = "https://scholar.google.com/scholar"
             params = {"q": query, "hl": "en"}
-            
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-            }
-            
+
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+
             response = requests.get(url, params=params, headers=headers, timeout=10)
             response.raise_for_status()
-            
+
             soup = BeautifulSoup(response.content, "html.parser")
             results = []
-            
+
             # Extract search results (simplified parsing)
             for result in soup.find_all("div", class_="gs_ri")[:max_results]:
                 title_elem = result.find("h3", class_="gs_rt")
@@ -190,17 +191,19 @@ class AcademicSearchTool(BaseTool):
                     title = title_elem.get_text().strip()
                     link = title_elem.find("a")
                     url = link.get("href") if link else ""
-                    
+
                     snippet_elem = result.find("div", class_="gs_rs")
                     snippet = snippet_elem.get_text().strip() if snippet_elem else ""
-                    
-                    results.append({
-                        "title": title,
-                        "url": url,
-                        "snippet": snippet,
-                        "source": "Google Scholar",
-                    })
-            
+
+                    results.append(
+                        {
+                            "title": title,
+                            "url": url,
+                            "snippet": snippet,
+                            "source": "Google Scholar",
+                        }
+                    )
+
             return results
 
         except Exception as e:
@@ -214,28 +217,28 @@ class AcademicSearchTool(BaseTool):
             # ResearchGate has strict anti-bot measures
             url = "https://www.researchgate.net/search"
             params = {"q": query}
-            
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-            }
-            
+
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+
             response = requests.get(url, params=params, headers=headers, timeout=10)
             response.raise_for_status()
-            
+
             soup = BeautifulSoup(response.content, "html.parser")
             results = []
-            
+
             # Extract search results (simplified parsing)
             for result in soup.find_all("div", class_="nova-e-text")[:max_results]:
                 title = result.get_text().strip()
                 if title and len(title) > 10:  # Basic filtering
-                    results.append({
-                        "title": title,
-                        "url": "",
-                        "snippet": title,
-                        "source": "ResearchGate",
-                    })
-            
+                    results.append(
+                        {
+                            "title": title,
+                            "url": "",
+                            "snippet": title,
+                            "source": "ResearchGate",
+                        }
+                    )
+
             return results
 
         except Exception as e:

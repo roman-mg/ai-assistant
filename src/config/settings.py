@@ -1,34 +1,33 @@
 """Configuration management using Pydantic settings."""
 
-from typing import Optional
-
+from dotenv import load_dotenv
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class Settings(BaseSettings):
-    """Application settings with default values."""
-
-    # OpenAI Configuration
-    openai_api_key: str = Field(
+class OpenAISettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="OPENAI_", env_file=".env", extra="ignore", case_sensitive=False)
+    api_key: str = Field(
         default="sk-your-openai-api-key-here",
         description="OpenAI API key for LLM and embeddings",
     )
-    openai_model: str = Field(
+    model: str = Field(
         default="gpt-4o",
         description="OpenAI model to use for chat completions",
     )
-    openai_embedding_model: str = Field(
+    embedding_model: str = Field(
         default="text-embedding-3-small",
         description="OpenAI model to use for embeddings",
     )
 
-    # Application Configuration
-    app_name: str = Field(
+
+class ApplicationSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="APP_", env_file=".env", extra="ignore", case_sensitive=False)
+    name: str = Field(
         default="AI Research Assistant",
         description="Application name",
     )
-    app_version: str = Field(
+    version: str = Field(
         default="0.1.0",
         description="Application version",
     )
@@ -37,7 +36,9 @@ class Settings(BaseSettings):
         description="Enable debug mode",
     )
 
-    # Server Configuration
+
+class ServerSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="SERVER_", env_file=".env", extra="ignore", case_sensitive=False)
     host: str = Field(
         default="0.0.0.0",
         description="Server host",
@@ -47,7 +48,9 @@ class Settings(BaseSettings):
         description="Server port",
     )
 
-    # Research Configuration
+
+class ResearcherSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="RESEARCHER_", env_file=".env", extra="ignore", case_sensitive=False)
     max_papers_per_query: int = Field(
         default=10,
         description="Maximum number of papers to return per query",
@@ -61,7 +64,9 @@ class Settings(BaseSettings):
         description="Maximum results to fetch from ArXiv",
     )
 
-    # Vector Store Configuration
+
+class VectorStoreSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="VECTOR_STORE_", env_file=".env", extra="ignore", case_sensitive=False)
     faiss_index_path: str = Field(
         default="./data/faiss_index",
         description="Path to store FAISS index",
@@ -75,32 +80,43 @@ class Settings(BaseSettings):
         description="Minimum similarity threshold for vector search",
     )
 
-    # Web Search Configuration
-    web_search_enabled: bool = Field(
+
+class WebSearchSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="WEB_SEARCH_", env_file=".env", extra="ignore", case_sensitive=False)
+    enabled: bool = Field(
         default=True,
         description="Enable web search functionality",
     )
-    max_web_results: int = Field(
+    max_results: int = Field(
         default=5,
         description="Maximum web search results to process",
     )
 
-    # Conversation Configuration
-    max_conversation_history: int = Field(
+
+class ConversationSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="CONVERSATION_", env_file=".env", extra="ignore", case_sensitive=False)
+    max_history: int = Field(
         default=10,
         description="Maximum number of messages to keep in conversation history",
     )
-    conversation_timeout: int = Field(
+    timeout: int = Field(
         default=3600,
         description="Conversation timeout in seconds",
     )
 
-    class Config:
-        """Pydantic configuration."""
 
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+class Settings(BaseSettings):
+    """Application settings with default values."""
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", case_sensitive=False)
+    openai: OpenAISettings = OpenAISettings()
+    app: ApplicationSettings = ApplicationSettings()
+    server: ServerSettings = ServerSettings()
+    researcher: ResearcherSettings = ResearcherSettings()
+    vector_store: VectorStoreSettings = VectorStoreSettings()
+    web_search: WebSearchSettings = WebSearchSettings()
+    conversation: ConversationSettings = ConversationSettings()
 
 
+load_dotenv()
 settings = Settings()

@@ -111,6 +111,8 @@ lint.ignore = [
     "ANN003", # Missing type annotation for **kwargs
     "ANN204", # Missing type annotation for special methods
     "ANN401", # Dynamically typed expressions (typing.Any) are disallowed in `*args/**kwargs`
+    "TID252", # Prefer absolute imports over relative imports from parent modules
+    "W293", # Blank line contains whitespace
 ]
 exclude = [
     ".git",

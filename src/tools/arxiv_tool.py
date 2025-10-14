@@ -7,8 +7,8 @@ from langchain.tools import BaseTool
 from loguru import logger
 from pydantic import BaseModel, Field
 
-from src.config.settings import settings
-from src.models.schemas import Paper
+from ..config.settings import settings
+from ..models.schemas import Paper
 
 
 class ArxivSearchInput(BaseModel):
@@ -51,11 +51,11 @@ class ArxivTool(BaseTool):
         """Search ArXiv for papers matching the query."""
         try:
             logger.info(f"Searching ArXiv for: {query}")
-            
+
             # Configure search parameters
             search_params = {
                 "query": query,
-                "max_results": min(max_results, settings.arxiv_max_results),
+                "max_results": min(max_results, settings.researcher.arxiv_max_results),
                 "sort_by": getattr(arxiv.SortCriterion, sort_by, arxiv.SortCriterion.Relevance),
                 "sort_order": getattr(arxiv.SortOrder, sort_order.title(), arxiv.SortOrder.Descending),
             }
@@ -139,24 +139,26 @@ class RecentPapersTool(BaseTool):
         """Find recent papers in a specific category."""
         try:
             logger.info(f"Searching for recent papers in {category} from last {days_back} days")
-            
+
             # Calculate date range
             end_date = datetime.now()
             start_date = end_date - timedelta(days=days_back)
-            
+
             # Create date range query
-            date_query = f"cat:{category} AND submittedDate:[{start_date.strftime('%Y%m%d')} TO {end_date.strftime('%Y%m%d')}]"
-            
+            date_query = (
+                f"cat:{category} AND submittedDate:[{start_date.strftime('%Y%m%d')} TO {end_date.strftime('%Y%m%d')}]"
+            )
+
             # Search with date filter
             search = arxiv.Search(
                 query=date_query,
-                max_results=min(max_results, settings.arxiv_max_results),
+                max_results=min(max_results, settings.researcher.arxiv_max_results),
                 sort_by=arxiv.SortCriterion.SubmittedDate,
                 sort_order=arxiv.SortOrder.Descending,
             )
-            
+
             results = list(search.results())
-            
+
             papers = []
             for result in results:
                 try:

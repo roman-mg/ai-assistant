@@ -4,8 +4,8 @@ from langchain.tools import BaseTool
 from loguru import logger
 from pydantic import BaseModel, Field
 
-from src.models.schemas import Paper
-from src.services.llm_service import llm_service
+from ..models.schemas import Paper
+from ..services.llm_service import llm_service
 
 
 class PaperAnalysisInput(BaseModel):
@@ -50,13 +50,11 @@ class PaperAnalyzerTool(BaseTool):
 
         try:
             logger.info(f"Analyzing {len(papers)} papers with analysis type: {analysis_type}")
-            
+
             analyzed_papers = []
             for paper in papers:
                 try:
-                    analyzed_paper = self._analyze_single_paper(
-                        paper, analysis_type, max_summary_length
-                    )
+                    analyzed_paper = self._analyze_single_paper(paper, analysis_type, max_summary_length)
                     analyzed_papers.append(analyzed_paper)
                 except Exception as e:
                     logger.warning(f"Error analyzing paper {paper.title}: {e}")
@@ -80,12 +78,12 @@ class PaperAnalyzerTool(BaseTool):
         try:
             # Create analysis prompt based on type
             prompt = self._create_analysis_prompt(paper, analysis_type, max_summary_length)
-            
+
             # Get analysis from LLM
             summary = llm_service.invoke_chat(prompt)
 
             # Create enhanced paper with summary
-            enhanced_paper = Paper(
+            return Paper(
                 title=paper.title,
                 authors=paper.authors,
                 abstract=paper.abstract,
@@ -95,8 +93,6 @@ class PaperAnalyzerTool(BaseTool):
                 categories=paper.categories,
                 similarity_score=paper.similarity_score,
             )
-
-            return enhanced_paper
 
         except Exception as e:
             logger.error(f"Error analyzing paper {paper.title}: {e}")
@@ -113,7 +109,7 @@ class PaperAnalyzerTool(BaseTool):
         Please analyze the following research paper and provide a {analysis_type}:
 
         Title: {paper.title}
-        Authors: {', '.join(paper.authors)}
+        Authors: {", ".join(paper.authors)}
         Abstract: {paper.abstract}
 
         Please provide a concise {analysis_type} in no more than {max_summary_length} characters.
@@ -121,25 +117,42 @@ class PaperAnalyzerTool(BaseTool):
         """
 
         if analysis_type == "summary":
-            return base_prompt + """
+            prompt = (
+                base_prompt
+                + """
             Summarize the key contributions, methodology, and findings of this paper.
             """
+            )
         elif analysis_type == "key_points":
-            return base_prompt + """
+            prompt = (
+                base_prompt
+                + """
             Extract the main key points, contributions, and important findings.
             """
+            )
         elif analysis_type == "methodology":
-            return base_prompt + """
+            prompt = (
+                base_prompt
+                + """
             Focus on the methodology, approach, and technical details used in this research.
             """
+            )
         elif analysis_type == "comparison":
-            return base_prompt + """
+            prompt = (
+                base_prompt
+                + """
             Highlight what makes this paper unique compared to other work in the field.
             """
+            )
         else:
-            return base_prompt + """
+            prompt = (
+                base_prompt
+                + """
             Provide a general analysis of this research paper.
             """
+            )
+
+        return prompt
 
     async def _arun(
         self,
@@ -189,10 +202,10 @@ class PaperComparisonTool(BaseTool):
 
         try:
             logger.info(f"Comparing {len(papers)} papers across {comparison_aspects}")
-            
+
             # Create comparison prompt
             prompt = self._create_comparison_prompt(papers, comparison_aspects)
-            
+
             # Get comparison from LLM
             comparison = llm_service.invoke_chat(prompt)
 
@@ -211,17 +224,19 @@ class PaperComparisonTool(BaseTool):
         """Create comparison prompt."""
         papers_info = []
         for i, paper in enumerate(papers, 1):
-            papers_info.append(f"""
+            papers_info.append(
+                f"""
             Paper {i}:
             Title: {paper.title}
-            Authors: {', '.join(paper.authors)}
+            Authors: {", ".join(paper.authors)}
             Abstract: {paper.abstract}
-            """)
+            """
+            )
 
-        prompt = f"""
-        Please compare the following research papers across these aspects: {', '.join(comparison_aspects)}
+        return f"""
+        Please compare the following research papers across these aspects: {", ".join(comparison_aspects)}
 
-        {''.join(papers_info)}
+        {"".join(papers_info)}
 
         Provide a detailed comparison that:
         1. Identifies similarities and differences
@@ -232,8 +247,6 @@ class PaperComparisonTool(BaseTool):
 
         Keep the comparison concise but comprehensive, focusing on the most important insights.
         """
-
-        return prompt
 
     async def _arun(
         self,

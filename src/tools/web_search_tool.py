@@ -115,10 +115,9 @@ class WebSearchTool(BaseTool):
         self,
         query: str,
         max_results: int = 5,
-        search_engine: str = "duckduckgo",
     ) -> list[dict]:
         """Async version of web search."""
-        return self._run(query, max_results, search_engine)
+        return self._run(query, max_results)
 
 
 class AcademicSearchInput(BaseModel):

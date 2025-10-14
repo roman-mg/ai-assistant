@@ -1,6 +1,6 @@
 """Web search tool for additional research capabilities."""
 
-import requests
+import requests  # TODO: use aiohttp
 from bs4 import BeautifulSoup
 from langchain.tools import BaseTool
 from loguru import logger
@@ -63,7 +63,8 @@ class WebSearchTool(BaseTool):
             logger.error(f"Error performing web search: {e}")
             return []
 
-    def _search_duckduckgo(self, query: str, max_results: int) -> list[dict]:
+    @staticmethod
+    def _search_duckduckgo(query: str, max_results: int) -> list[dict]:
         """Search using DuckDuckGo."""
         try:
             # DuckDuckGo instant answer API
@@ -168,7 +169,8 @@ class AcademicSearchTool(BaseTool):
             logger.error(f"Error performing academic search: {e}")
             return []
 
-    def _search_google_scholar(self, query: str, max_results: int) -> list[dict]:
+    @staticmethod
+    def _search_google_scholar(query: str, max_results: int) -> list[dict]:
         """Search Google Scholar (simplified implementation)."""
         try:
             # Note: This is a simplified implementation
@@ -210,7 +212,8 @@ class AcademicSearchTool(BaseTool):
             logger.error(f"Error searching Google Scholar: {e}")
             return []
 
-    def _search_researchgate(self, query: str, max_results: int) -> list[dict]:
+    @staticmethod
+    def _search_researchgate(query: str, max_results: int) -> list[dict]:
         """Search ResearchGate (simplified implementation)."""
         try:
             # Note: This is a simplified implementation

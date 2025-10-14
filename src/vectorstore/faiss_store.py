@@ -28,40 +28,6 @@ class FAISSPaperStore:
         # Load existing index if available
         self._load_index()
 
-    def _load_index(self) -> None:
-        """Load existing FAISS index and papers from disk."""
-        try:
-            if os.path.exists(self.index_path) and os.path.exists(self.papers_path):
-                logger.info("Loading existing FAISS index and papers")
-
-                # Load FAISS index
-                self.index = faiss.read_index(self.index_path)
-
-                # Load papers
-                with open(self.papers_path, "rb") as f:
-                    self.papers = pickle.load(f)
-
-                logger.info(f"Loaded {len(self.papers)} papers from existing index")
-            else:
-                logger.info("No existing index found, creating new one")
-                self._create_new_index()
-
-        except Exception as e:
-            logger.error(f"Error loading index: {e}")
-            self._create_new_index()
-
-    def _create_new_index(self) -> None:
-        """Create a new FAISS index."""
-        try:
-            # Create FAISS index
-            self.index = faiss.IndexFlatIP(self.dimension)  # Inner product for cosine similarity
-            self.papers = []
-            logger.info("Created new FAISS index")
-
-        except Exception as e:
-            logger.error(f"Error creating new index: {e}")
-            raise
-
     def add_papers(self, papers: list[Paper]) -> None:
         """Add papers to the vector store."""
         if not papers:
@@ -184,17 +150,6 @@ class FAISSPaperStore:
             logger.error(f"Error saving index: {e}")
             raise
 
-    @staticmethod
-    def _paper_to_text(paper: Paper) -> str:
-        """Convert paper to text for embedding."""
-        text_parts = [
-            paper.title,
-            " ".join(paper.authors),
-            paper.abstract,
-            " ".join(paper.categories),
-        ]
-        return " ".join(text_parts)
-
     def clear_index(self) -> None:
         """Clear all papers from the index."""
         try:
@@ -234,6 +189,51 @@ class FAISSPaperStore:
 
         except Exception as e:
             logger.error(f"Error rebuilding index: {e}")
+            raise
+
+    @staticmethod
+    def _paper_to_text(paper: Paper) -> str:
+        """Convert paper to text for embedding."""
+        text_parts = [
+            paper.title,
+            " ".join(paper.authors),
+            paper.abstract,
+            " ".join(paper.categories),
+        ]
+        return " ".join(text_parts)
+
+    def _load_index(self) -> None:
+        """Load existing FAISS index and papers from disk."""
+        try:
+            if os.path.exists(self.index_path) and os.path.exists(self.papers_path):
+                logger.info("Loading existing FAISS index and papers")
+
+                # Load FAISS index
+                self.index = faiss.read_index(self.index_path)
+
+                # Load papers
+                with open(self.papers_path, "rb") as f:
+                    self.papers = pickle.load(f)
+
+                logger.info(f"Loaded {len(self.papers)} papers from existing index")
+            else:
+                logger.info("No existing index found, creating new one")
+                self._create_new_index()
+
+        except Exception as e:
+            logger.error(f"Error loading index: {e}")
+            self._create_new_index()
+
+    def _create_new_index(self) -> None:
+        """Create a new FAISS index."""
+        try:
+            # Create FAISS index
+            self.index = faiss.IndexFlatIP(self.dimension)  # Inner product for cosine similarity
+            self.papers = []
+            logger.info("Created new FAISS index")
+
+        except Exception as e:
+            logger.error(f"Error creating new index: {e}")
             raise
 
 

@@ -48,30 +48,6 @@ class ResearcherAgent:
         # Build the graph
         self.graph = self._build_graph()
 
-    def _build_graph(self) -> StateGraph:
-        """Build the LangGraph workflow."""
-        workflow = StateGraph(AgentState)
-
-        # Add nodes
-        workflow.add_node("analyze_query", self._analyze_query)
-        workflow.add_node("search_papers", self._search_papers)
-        workflow.add_node("analyze_papers", self._analyze_papers)
-        workflow.add_node("search_vector_store", self._search_vector_store)
-        workflow.add_node("web_search", self._web_search)
-        workflow.add_node("generate_response", self._generate_response)
-
-        # Add edges
-        workflow.set_entry_point("analyze_query")
-
-        workflow.add_edge("analyze_query", "search_papers")
-        workflow.add_edge("search_papers", "analyze_papers")
-        workflow.add_edge("analyze_papers", "search_vector_store")
-        workflow.add_edge("search_vector_store", "web_search")
-        workflow.add_edge("web_search", "generate_response")
-        workflow.add_edge("generate_response", END)
-
-        return workflow.compile()
-
     async def research(
         self,
         query: str,
@@ -125,7 +101,44 @@ class ResearcherAgent:
                 error=str(e),
             )
 
-    async def _analyze_query(self, state: AgentState) -> AgentState:
+    @staticmethod
+    def add_papers_to_vector_store(papers: list[Paper]) -> None:
+        """Add papers to the vector store for future similarity search."""
+        try:
+            logger.info(f"Adding {len(papers)} papers to vector store")
+            vector_store.add_papers(papers)
+            vector_store.save_index()
+            logger.info("Successfully added papers to vector store")
+
+        except Exception as e:
+            logger.error(f"Error adding papers to vector store: {e}")
+
+    def _build_graph(self) -> StateGraph:
+        """Build the LangGraph workflow."""
+        workflow = StateGraph(AgentState)
+
+        # Add nodes
+        workflow.add_node("analyze_query", self._analyze_query)
+        workflow.add_node("search_papers", self._search_papers)
+        workflow.add_node("analyze_papers", self._analyze_papers)
+        workflow.add_node("search_vector_store", self._search_vector_store)
+        workflow.add_node("web_search", self._web_search)
+        workflow.add_node("generate_response", self._generate_response)
+
+        # Add edges
+        workflow.set_entry_point("analyze_query")
+
+        workflow.add_edge("analyze_query", "search_papers")
+        workflow.add_edge("search_papers", "analyze_papers")
+        workflow.add_edge("analyze_papers", "search_vector_store")
+        workflow.add_edge("search_vector_store", "web_search")
+        workflow.add_edge("web_search", "generate_response")
+        workflow.add_edge("generate_response", END)
+
+        return workflow.compile()
+
+    @staticmethod
+    async def _analyze_query( state: AgentState) -> AgentState:
         """Analyze the research query to determine search strategy."""
         try:
             query = state["research_query"]
@@ -163,7 +176,8 @@ class ResearcherAgent:
             state["error"] = str(e)
             return state
 
-    async def _search_papers(self, state: AgentState) -> AgentState:
+    @staticmethod
+    async def _search_papers(state: AgentState) -> AgentState:
         """Search for papers using ArXiv."""
         try:
             query = state["research_query"]
@@ -187,7 +201,8 @@ class ResearcherAgent:
             state["error"] = str(e)
             return state
 
-    async def _analyze_papers(self, state: AgentState) -> AgentState:
+    @staticmethod
+    async def _analyze_papers(state: AgentState) -> AgentState:
         """Analyze and summarize the found papers."""
         try:
             papers = state["papers"]
@@ -217,7 +232,8 @@ class ResearcherAgent:
             state["error"] = str(e)
             return state
 
-    async def _search_vector_store(self, state: AgentState) -> AgentState:
+    @staticmethod
+    async def _search_vector_store(state: AgentState) -> AgentState:
         """Search for similar papers in the vector store."""
         try:
             query = state["research_query"]
@@ -246,7 +262,8 @@ class ResearcherAgent:
             state["error"] = str(e)
             return state
 
-    async def _web_search(self, state: AgentState) -> AgentState:
+    @staticmethod
+    async def _web_search(state: AgentState) -> AgentState:
         """Perform additional web search for context."""
         try:
             if not settings.web_search.enabled:
@@ -276,7 +293,8 @@ class ResearcherAgent:
             state["error"] = str(e)
             return state
 
-    async def _generate_response(self, state: AgentState) -> AgentState:
+    @staticmethod
+    async def _generate_response(state: AgentState) -> AgentState:
         """Generate final response with research results."""
         try:
             query = state["research_query"]
@@ -304,17 +322,6 @@ class ResearcherAgent:
             logger.error(f"Error generating response: {e}")
             state["error"] = str(e)
             return state
-
-    def add_papers_to_vector_store(self, papers: list[Paper]) -> None:
-        """Add papers to the vector store for future similarity search."""
-        try:
-            logger.info(f"Adding {len(papers)} papers to vector store")
-            vector_store.add_papers(papers)
-            vector_store.save_index()
-            logger.info("Successfully added papers to vector store")
-
-        except Exception as e:
-            logger.error(f"Error adding papers to vector store: {e}")
 
 
 # Global research agent instance

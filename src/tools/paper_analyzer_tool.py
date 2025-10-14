@@ -98,8 +98,8 @@ class PaperAnalyzerTool(BaseTool):
             logger.error(f"Error analyzing paper {paper.title}: {e}")
             return paper
 
+    @staticmethod
     def _create_analysis_prompt(
-        self,
         paper: Paper,
         analysis_type: str,
         max_summary_length: int,
@@ -216,8 +216,8 @@ class PaperComparisonTool(BaseTool):
             logger.error(f"Error comparing papers: {e}")
             return f"Error comparing papers: {str(e)}"
 
+    @staticmethod
     def _create_comparison_prompt(
-        self,
         papers: list[Paper],
         comparison_aspects: list[str],
     ) -> str:

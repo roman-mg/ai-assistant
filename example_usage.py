@@ -12,7 +12,7 @@ def test_chat_endpoint() -> None:
     """Test the basic chat endpoint."""
     logger.info("Testing chat endpoint...")
 
-    url = "http://localhost:8000/chat"
+    url = f"http://{host}:{port}/chat"
     data = {
         "message": "What are the latest advances in transformer architectures?",
         "stream": False,
@@ -34,7 +34,7 @@ def test_streaming_endpoint() -> None:
     """Test the streaming chat endpoint."""
     logger.info("Testing streaming endpoint...")
 
-    url = "http://localhost:8000/chat/stream"
+    url = f"http://{host}:{port}/chat/stream"
     data = {
         "message": "Recent developments in reinforcement learning",
         "stream": True,
@@ -60,7 +60,7 @@ async def test_websocket() -> None:
     """Test the WebSocket endpoint."""
     logger.info("Testing WebSocket endpoint...")
 
-    uri = "ws://localhost:8000/ws"
+    uri = f"ws://{host}:{port}/ws"
 
     try:
         async with websockets.connect(uri) as websocket:
@@ -87,7 +87,7 @@ def test_paper_search() -> None:
     """Test the paper search endpoint."""
     logger.info("Testing paper search endpoint...")
 
-    url = "http://localhost:8000/papers/search"
+    url = f"http://{host}:{port}/papers/search"
     data = {
         "query": "machine learning",
         "limit": 5,
@@ -111,7 +111,7 @@ def test_health_check() -> None:
     logger.info("Testing health check...")
 
     try:
-        response = requests.get("http://localhost:8000/health")
+        response = requests.get(f"http://{host}:{port}/health")
         response.raise_for_status()
 
         result = response.json()
@@ -143,4 +143,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    host: str = "localhost"
+    port: str = "8000"
     main()

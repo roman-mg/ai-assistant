@@ -7,6 +7,10 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+class ModelType(StrEnum):
+    openai = "openai"
+
+
 class OpenAISettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="OPENAI_", env_file=".env", extra="ignore", case_sensitive=False)
     api_key: str = Field(
@@ -24,8 +28,6 @@ class OpenAISettings(BaseSettings):
 
 
 class ModelSettings(BaseSettings):
-    class ModelType(StrEnum):
-        openai = "openai"
 
     model_config = SettingsConfigDict(env_prefix="MODEL_", env_file=".env", extra="ignore", case_sensitive=False)
     model_type: ModelType = Field(

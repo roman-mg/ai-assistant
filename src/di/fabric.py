@@ -6,7 +6,7 @@ from ..config.settings import settings, ModelType
 
 
 def create_llm_instance() -> BaseChatModel:
-    match settings.model.model_type:
+    match settings.model.type:
         case ModelType.openai:
             return ChatOpenAI(
                 model=settings.model.openai.model,
@@ -14,15 +14,15 @@ def create_llm_instance() -> BaseChatModel:
                 temperature=0.3,
             )
         case _:
-            raise NotImplemented(f"Model {settings.model.model_type} is not supported.")
+            raise NotImplemented(f"Model {settings.model.type} is not supported.")
 
 
 def create_embeddings_model_instance() -> Embeddings:
-    match settings.model.model_type:
+    match settings.model.type:
         case ModelType.openai:
             return OpenAIEmbeddings(
                 model=settings.model.openai.embedding_model,
                 api_key=settings.model.openai.api_key,
             )
         case _:
-            raise NotImplemented(f"Model {settings.model.model_type} is not supported.")
+            raise NotImplemented(f"Model {settings.model.type} is not supported.")

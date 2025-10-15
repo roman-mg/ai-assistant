@@ -28,11 +28,11 @@ class OpenAISettings(BaseSettings):
 
 class ModelSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="MODEL_", env_file=".env", extra="ignore", case_sensitive=False)
-    model_type: ModelType = Field(
+    type: ModelType = Field(
         default="openai",
         description="Specify models set for LLM and embeddings",
     )
-    openai: OpenAISettings = OpenAISettings()
+    openai: OpenAISettings = Field(default_factory=OpenAISettings)
 
 
 class ApplicationSettings(BaseSettings):
@@ -127,13 +127,13 @@ class Settings(BaseSettings):
     """Application settings with default values."""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", case_sensitive=False)
-    app: ApplicationSettings = ApplicationSettings()
-    server: ServerSettings = ServerSettings()
-    model: ModelSettings = ModelSettings()
-    researcher: ResearcherSettings = ResearcherSettings()
-    vector_store: VectorStoreSettings = VectorStoreSettings()
-    web_search: WebSearchSettings = WebSearchSettings()
-    conversation: ConversationSettings = ConversationSettings()
+    app: ApplicationSettings = Field(default_factory=ApplicationSettings)
+    server: ServerSettings = Field(default_factory=ServerSettings)
+    model: ModelSettings = Field(default_factory=ModelSettings)
+    researcher: ResearcherSettings = Field(default_factory=ResearcherSettings)
+    vector_store: VectorStoreSettings = Field(default_factory=VectorStoreSettings)
+    web_search: WebSearchSettings = Field(default_factory=WebSearchSettings)
+    conversation: ConversationSettings = Field(default_factory=ConversationSettings)
 
 
 load_dotenv()

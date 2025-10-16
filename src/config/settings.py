@@ -9,11 +9,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class ModelType(StrEnum):
     openai = "openai"
+    ollama = "ollama"
 
 
 class OpenAISettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="OPENAI_", env_file=".env", extra="ignore", case_sensitive=False)
     api_key: str = Field(
+        default="test",
         description="OpenAI API key for LLM and embeddings",
     )
     model: str = Field(
@@ -26,13 +28,26 @@ class OpenAISettings(BaseSettings):
     )
 
 
+class OllamaSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="OPENAI_", env_file=".env", extra="ignore", case_sensitive=False)
+    model: str = Field(
+        default="phi",
+        description="Ollama model to use for chat completions",
+    )
+    embedding_model: str = Field(
+        default="all-minilm",
+        description="Ollama model to use for embeddings",
+    )
+
+
 class ModelSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="MODEL_", env_file=".env", extra="ignore", case_sensitive=False)
     type: ModelType = Field(
-        default="openai",
+        default="ollama",
         description="Specify models set for LLM and embeddings",
     )
     openai: OpenAISettings = Field(default_factory=OpenAISettings)
+    ollama: OllamaSettings = Field(default_factory=OllamaSettings)
 
 
 class ApplicationSettings(BaseSettings):

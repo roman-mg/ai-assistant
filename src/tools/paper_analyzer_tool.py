@@ -1,5 +1,7 @@
 """Paper analyzer tool using OpenAI for summarization and analysis."""
 
+import traceback
+
 from langchain.tools import BaseTool
 from loguru import logger
 from pydantic import BaseModel, Field
@@ -56,16 +58,16 @@ class PaperAnalyzerTool(BaseTool):
                 try:
                     analyzed_paper = self._analyze_single_paper(paper, analysis_type, max_summary_length)
                     analyzed_papers.append(analyzed_paper)
-                except Exception as e:
-                    logger.warning(f"Error analyzing paper {paper.title}: {e}")
+                except Exception:
+                    logger.warning(f"Error analyzing paper {paper.title}: {traceback.format_exc()}")
                     # Return original paper if analysis fails
                     analyzed_papers.append(paper)
 
             logger.info(f"Successfully analyzed {len(analyzed_papers)} papers")
             return analyzed_papers
 
-        except Exception as e:
-            logger.error(f"Error in paper analysis: {e}")
+        except Exception:
+            logger.error(f"Error in paper analysis: {traceback.format_exc()}")
             return papers  # Return original papers if analysis fails
 
     def _analyze_single_paper(
@@ -94,8 +96,8 @@ class PaperAnalyzerTool(BaseTool):
                 similarity_score=paper.similarity_score,
             )
 
-        except Exception as e:
-            logger.error(f"Error analyzing paper {paper.title}: {e}")
+        except Exception:
+            logger.error(f"Error analyzing paper {paper.title}: {traceback.format_exc()}")
             return paper
 
     @staticmethod
@@ -213,7 +215,7 @@ class PaperComparisonTool(BaseTool):
             return comparison
 
         except Exception as e:
-            logger.error(f"Error comparing papers: {e}")
+            logger.error(f"Error comparing papers: {traceback.format_exc()}")
             return f"Error comparing papers: {str(e)}"
 
     @staticmethod

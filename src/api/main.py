@@ -3,6 +3,7 @@
 import asyncio
 import json
 import time
+import traceback
 import uuid
 from collections.abc import AsyncGenerator
 
@@ -10,8 +11,6 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from loguru import logger
-
-from src.vectorstore.faiss_store import vector_store
 
 from ..agents.researcher_agent import researcher_agent
 from ..config.settings import settings
@@ -26,6 +25,7 @@ from ..models.schemas import (
     WebSocketMessage,
     WebSocketResponse,
 )
+from ..vectorstore.faiss_store import vector_store
 
 # Create FastAPI app
 app = FastAPI(
@@ -73,8 +73,8 @@ class ConnectionManager:
         for connection in self.active_connections:
             try:
                 await connection.send_text(message)
-            except Exception as e:
-                logger.error(f"Error broadcasting message: {e}")
+            except Exception:
+                logger.error(f"Error broadcasting message: {traceback.format_exc()}")
 
 
 manager = ConnectionManager()
@@ -141,7 +141,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
         )
 
     except Exception as e:
-        logger.error(f"Error in chat endpoint: {e}")
+        logger.error(f"Error in chat endpoint: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
@@ -213,7 +213,7 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
                     researcher_agent.add_papers_to_vector_store(research_result.papers)
 
             except Exception as e:
-                logger.error(f"Error in streaming: {e}")
+                logger.error(f"Error in streaming: {traceback.format_exc()}")
                 error_chunk = StreamingChunk(
                     content=f"Error: {str(e)}",
                     conversation_id=conversation_id,
@@ -228,7 +228,7 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
         )
 
     except Exception as e:
-        logger.error(f"Error in streaming chat endpoint: {e}")
+        logger.error(f"Error in streaming chat endpoint: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
@@ -326,7 +326,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                     researcher_agent.add_papers_to_vector_store(research_result.papers)
 
             except Exception as e:
-                logger.error(f"Error in WebSocket processing: {e}")
+                logger.error(f"Error in WebSocket processing: {traceback.format_exc()}")
                 await manager.send_personal_message(
                     json.dumps(
                         WebSocketResponse(
@@ -340,8 +340,8 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
 
     except WebSocketDisconnect:
         manager.disconnect(websocket)
-    except Exception as e:
-        logger.error(f"WebSocket error: {e}")
+    except Exception:
+        logger.error(f"WebSocket error: {traceback.format_exc()}")
         manager.disconnect(websocket)
 
 
@@ -368,7 +368,7 @@ async def search_papers(request: PaperSearchRequest) -> PaperSearchResponse:
         )
 
     except Exception as e:
-        logger.error(f"Error searching papers: {e}")
+        logger.error(f"Error searching papers: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
@@ -380,7 +380,7 @@ async def get_paper_count() -> dict[str, int]:
         return {"count": count}
 
     except Exception as e:
-        logger.error(f"Error getting paper count: {e}")
+        logger.error(f"Error getting paper count: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
@@ -413,7 +413,7 @@ async def _generate_chat_response(research_result: ResearchResult, query: str) -
         return "\n".join(response_parts)
 
     except Exception as e:
-        logger.error(f"Error generating chat response: {e}")
+        logger.error(f"Error generating chat response: {traceback.format_exc()}")
         return f"I found some papers but encountered an error generating the response: {str(e)}"
 
 
@@ -432,5 +432,5 @@ async def shutdown_event() -> None:
     try:
         vector_store.save_index()
         logger.info("Vector store index saved")
-    except Exception as e:
-        logger.error(f"Error saving vector store: {e}")
+    except Exception:
+        logger.error(f"Error saving vector store: {traceback.format_exc()}")

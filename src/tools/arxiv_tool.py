@@ -1,5 +1,6 @@
 """ArXiv research tool for finding academic papers."""
 
+import traceback
 from datetime import datetime, timedelta
 
 import arxiv
@@ -78,14 +79,14 @@ class ArxivTool(BaseTool):
                     )
                     papers.append(paper)
                 except Exception as e:
-                    logger.warning(f"Error processing paper {result.title}: {e}")
+                    logger.warning(f"Error processing paper {result.title}: {traceback.format_exc()}")
                     continue
 
             logger.info(f"Found {len(papers)} papers from ArXiv")
             return papers
 
         except Exception as e:
-            logger.error(f"Error searching ArXiv: {e}")
+            logger.error(f"Error searching ArXiv: {traceback.format_exc()}")
             return []
 
     async def _arun(
@@ -173,14 +174,14 @@ class RecentPapersTool(BaseTool):
                     )
                     papers.append(paper)
                 except Exception as e:
-                    logger.warning(f"Error processing paper {result.title}: {e}")
+                    logger.warning(f"Error processing paper {result.title}: {traceback.format_exc()}")
                     continue
 
             logger.info(f"Found {len(papers)} recent papers in {category}")
             return papers
 
         except Exception as e:
-            logger.error(f"Error searching recent papers: {e}")
+            logger.error(f"Error searching recent papers: {traceback.format_exc()}")
             return []
 
     async def _arun(

@@ -1,6 +1,7 @@
 """LangGraph research agent for orchestrating research workflows."""
 
 import time
+import traceback
 from typing import Any, TypedDict
 
 from langgraph.graph import END, StateGraph
@@ -91,7 +92,7 @@ class ResearcherAgent:
             return result
 
         except Exception as e:
-            logger.error(f"Error in research: {e}")
+            logger.error(f"Error in research: {traceback.format_exc()}")
             return ResearchResult(
                 papers=[],
                 total_found=0,
@@ -110,8 +111,8 @@ class ResearcherAgent:
             vector_store.save_index()
             logger.info("Successfully added papers to vector store")
 
-        except Exception as e:
-            logger.error(f"Error adding papers to vector store: {e}")
+        except Exception:
+            logger.error(f"Error adding papers to vector store: {traceback.format_exc()}")
 
     def _build_graph(self) -> StateGraph:
         """Build the LangGraph workflow."""
@@ -172,7 +173,7 @@ class ResearcherAgent:
             return state
 
         except Exception as e:
-            logger.error(f"Error analyzing query: {e}")
+            logger.error(f"Error analyzing query: {traceback.format_exc()}")
             state["error"] = str(e)
             return state
 
@@ -197,7 +198,7 @@ class ResearcherAgent:
             return state
 
         except Exception as e:
-            logger.error(f"Error searching papers: {e}")
+            logger.error(f"Error searching papers: {traceback.format_exc()}")
             state["error"] = str(e)
             return state
 
@@ -228,7 +229,7 @@ class ResearcherAgent:
             return state
 
         except Exception as e:
-            logger.error(f"Error analyzing papers: {e}")
+            logger.error(f"Error analyzing papers: {traceback.format_exc()}")
             state["error"] = str(e)
             return state
 
@@ -258,7 +259,7 @@ class ResearcherAgent:
             return state
 
         except Exception as e:
-            logger.error(f"Error searching vector store: {e}")
+            logger.error(f"Error searching vector store: {traceback.format_exc()}")
             state["error"] = str(e)
             return state
 
@@ -289,7 +290,7 @@ class ResearcherAgent:
             return state
 
         except Exception as e:
-            logger.error(f"Error in web search: {e}")
+            logger.error(f"Error in web search: {traceback.format_exc()}")
             state["error"] = str(e)
             return state
 
@@ -319,7 +320,7 @@ class ResearcherAgent:
             return state
 
         except Exception as e:
-            logger.error(f"Error generating response: {e}")
+            logger.error(f"Error generating response: {traceback.format_exc()}")
             state["error"] = str(e)
             return state
 

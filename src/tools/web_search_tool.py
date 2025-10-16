@@ -1,5 +1,7 @@
 """Web search tool for additional research capabilities."""
 
+import traceback
+
 import requests  # TODO: use aiohttp
 from bs4 import BeautifulSoup
 from langchain.tools import BaseTool
@@ -55,8 +57,8 @@ class WebSearchTool(BaseTool):
             logger.info(f"Found {len(results)} web search results")
             return results
 
-        except Exception as e:
-            logger.error(f"Error performing web search: {e}")
+        except Exception:
+            logger.error(f"Error performing web search: {traceback.format_exc()}")
             return []
 
     @staticmethod
@@ -103,8 +105,8 @@ class WebSearchTool(BaseTool):
 
             return results[:max_results]
 
-        except Exception as e:
-            logger.error(f"Error searching DuckDuckGo: {e}")
+        except Exception:
+            logger.error(f"Error searching DuckDuckGo: {traceback.format_exc()}")
             return []
 
     async def _arun(
@@ -160,8 +162,8 @@ class AcademicSearchTool(BaseTool):
             logger.info(f"Found {len(results)} academic search results")
             return results[:max_results]
 
-        except Exception as e:
-            logger.error(f"Error performing academic search: {e}")
+        except Exception:
+            logger.error(f"Error performing academic search: {traceback.format_exc()}")
             return []
 
     @staticmethod
@@ -203,8 +205,8 @@ class AcademicSearchTool(BaseTool):
 
             return results
 
-        except Exception as e:
-            logger.error(f"Error searching Google Scholar: {e}")
+        except Exception:
+            logger.error(f"Error searching Google Scholar: {traceback.format_exc()}")
             return []
 
     @staticmethod
@@ -239,8 +241,8 @@ class AcademicSearchTool(BaseTool):
 
             return results
 
-        except Exception as e:
-            logger.error(f"Error searching ResearchGate: {e}")
+        except Exception:
+            logger.error(f"Error searching ResearchGate: {traceback.format_exc()}")
             return []
 
     async def _arun(

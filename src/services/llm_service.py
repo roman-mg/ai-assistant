@@ -1,5 +1,7 @@
 """Shared LLM and embeddings service for the entire project."""
 
+import traceback
+
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.embeddings import Embeddings
 from loguru import logger
@@ -28,8 +30,8 @@ class LLMService:
         try:
             logger.debug(f"Embedding {len(texts)} documents")
             return self.embeddings_model.embed_documents(texts)
-        except Exception as e:
-            logger.error(f"Error embedding documents: {e}")
+        except Exception:
+            logger.error(f"Error embedding documents: {traceback.format_exc()}")
             raise
 
     def embed_query(self, text: str) -> list[float]:
@@ -37,8 +39,8 @@ class LLMService:
         try:
             logger.debug(f"Embedding query: {text[:50]}...")
             return self.embeddings_model.embed_query(text)
-        except Exception as e:
-            logger.error(f"Error embedding query: {e}")
+        except Exception:
+            logger.error(f"Error embedding query: {traceback.format_exc()}")
             raise
 
     def invoke_chat(self, prompt: str) -> str:
@@ -47,8 +49,8 @@ class LLMService:
             logger.debug(f"Invoking chat LLM with prompt: {prompt[:100]}...")
             response = self.chat_llm.invoke(prompt)
             return response.content.strip()
-        except Exception as e:
-            logger.error(f"Error invoking chat LLM: {e}")
+        except Exception:
+            logger.error(f"Error invoking chat LLM: {traceback.format_exc()}")
             raise
 
     async def ainvoke_chat(self, prompt: str) -> str:
@@ -57,8 +59,8 @@ class LLMService:
             logger.debug(f"Async invoking chat LLM with prompt: {prompt[:100]}...")
             response = await self.chat_llm.ainvoke(prompt)
             return response.content.strip()
-        except Exception as e:
-            logger.error(f"Error async invoking chat LLM: {e}")
+        except Exception:
+            logger.error(f"Error async invoking chat LLM: {traceback.format_exc()}")
             raise
 
 

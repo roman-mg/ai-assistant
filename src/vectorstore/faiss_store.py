@@ -2,6 +2,7 @@
 
 import os
 import pickle
+import traceback
 
 import faiss
 import numpy as np
@@ -105,8 +106,8 @@ class FAISSPaperStore:
             logger.info(f"Found {len(results)} similar papers")
             return results
 
-        except Exception as e:
-            logger.error(f"Error searching similar papers: {e}")
+        except Exception:
+            logger.error(f"Error searching similar papers: {traceback.format_exc()}")
             return []
 
     def get_paper_by_title(self, title: str) -> Paper | None:
@@ -146,8 +147,8 @@ class FAISSPaperStore:
 
                 logger.info("Successfully saved index and papers")
 
-        except Exception as e:
-            logger.error(f"Error saving index: {e}")
+        except Exception:
+            logger.error(f"Error saving index: {traceback.format_exc()}")
             raise
 
     def clear_index(self) -> None:
@@ -164,8 +165,8 @@ class FAISSPaperStore:
 
             logger.info("Successfully cleared vector store")
 
-        except Exception as e:
-            logger.error(f"Error clearing index: {e}")
+        except Exception:
+            logger.error(f"Error clearing index: {traceback.format_exc()}")
             raise
 
     def rebuild_index(self) -> None:
@@ -187,8 +188,8 @@ class FAISSPaperStore:
 
             logger.info("Successfully rebuilt vector store index")
 
-        except Exception as e:
-            logger.error(f"Error rebuilding index: {e}")
+        except Exception:
+            logger.error(f"Error rebuilding index: {traceback.format_exc()}")
             raise
 
     @staticmethod
@@ -220,8 +221,8 @@ class FAISSPaperStore:
                 logger.info("No existing index found, creating new one")
                 self._create_new_index()
 
-        except Exception as e:
-            logger.error(f"Error loading index: {e}")
+        except Exception:
+            logger.error(f"Error loading index: {traceback.format_exc()}")
             self._create_new_index()
 
     def _create_new_index(self) -> None:
@@ -232,8 +233,8 @@ class FAISSPaperStore:
             self.papers = []
             logger.info("Created new FAISS index")
 
-        except Exception as e:
-            logger.error(f"Error creating new index: {e}")
+        except Exception:
+            logger.error(f"Error creating new index: {traceback.format_exc()}")
             raise
 
 

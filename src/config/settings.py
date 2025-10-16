@@ -92,6 +92,10 @@ class ResearcherSettings(BaseSettings):
         default=50,
         description="Maximum results to fetch from ArXiv",
     )
+    graph_diagram_path: str = Field(
+        default="./data/graph.png",
+        description="Path to store LangGraph diagram",
+    )
 
 
 class VectorStoreSettings(BaseSettings):

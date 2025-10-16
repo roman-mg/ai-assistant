@@ -101,7 +101,7 @@ class VectorStoreSettings(BaseSettings):
         description="Path to store FAISS index",
     )
     vector_dimension: int = Field(
-        default=1536,
+        default=384,
         description="Dimension of embedding vectors",
     )
     similarity_threshold: float = Field(

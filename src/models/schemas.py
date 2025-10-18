@@ -64,6 +64,7 @@ class ResearchResult(BaseModel):
         default_factory=list,
         description="Sources used for research",
     )
+    summary: str | None = Field(default=None, description="Research summary")
     error: str | None = Field(default=None, description="Search execution time in seconds")
 
 

@@ -276,10 +276,8 @@ class SummaryAgent:
                 search_query=query,
                 search_time=search_time,
                 sources=sources,
+                summary=summary
             )
-
-            # Add summary to metadata
-            research_result.metadata = {"summary": summary}
 
             logger.info("Successfully created research result")
             return research_result

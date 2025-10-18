@@ -45,6 +45,7 @@ aiofiles ="^24.0.0"
 loguru = "^0.7.3"
 arxiv-mcp-server = "^0.3.1"
 langchain-ollama = "^0.3.10"
+aiohttp = "^3.13.1"
 
 [tool.poetry.group.dev.dependencies]
 poethepoet = "^0.33.1"

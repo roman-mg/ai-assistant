@@ -8,7 +8,7 @@ from loguru import logger
 from ..config.settings import settings
 from ..models.schemas import Paper
 from ..tools.arxiv_tool import ArxivTool, RecentPapersTool
-from ..tools.web_search_tool import WebSearchTool, AcademicSearchTool
+from ..tools.web_search_tool import WebSearchTool
 from ..vectorstore.faiss_store import vector_store
 
 
@@ -18,7 +18,6 @@ class SearchState(TypedDict):
     query: str
     papers: list[Paper]
     web_results: list[dict]
-    academic_results: list[dict]
     error: str | None
 
 
@@ -34,7 +33,6 @@ class SearchAgent:
             "arxiv": ArxivTool(),
             "recent_papers": RecentPapersTool(),
             "web_search": WebSearchTool(),
-            "academic_search": AcademicSearchTool(),
         }
         
         logger.info("Search Agent initialized")
@@ -176,33 +174,7 @@ class SearchAgent:
             logger.error(f"Error in web search: {traceback.format_exc()}")
             return []
 
-    async def academic_search(self, query: str) -> list[dict]:
-        """
-        Perform academic search for additional context.
-        
-        Args:
-            query: The research query
-            
-        Returns:
-            List of academic search results
-        """
-        try:
-            logger.info(f"Performing academic search for: {query}")
-
-            # Use academic search tool
-            academic_results = await self.tools["academic_search"]._arun(
-                query=query,
-                max_results=settings.web_search.max_results,
-            )
-
-            logger.info(f"Found {len(academic_results)} academic search results")
-            return academic_results
-
-        except Exception:
-            logger.error(f"Error in academic search: {traceback.format_exc()}")
-            return []
-
-    async def comprehensive_search(self, query: str) -> tuple[list[Paper], list[dict], list[dict]]:
+    async def comprehensive_search(self, query: str) -> tuple[list[Paper], list[dict]]:
         """
         Perform comprehensive search across all sources.
         
@@ -225,16 +197,13 @@ class SearchAgent:
             # Perform web search
             web_results = await self.web_search(query)
             
-            # Perform academic search
-            academic_results = await self.academic_search(query)
+            logger.info(f"Comprehensive search completed: {len(papers)} papers, {len(web_results)} web results.")
             
-            logger.info(f"Comprehensive search completed: {len(papers)} papers, {len(web_results)} web results, {len(academic_results)} academic results")
-            
-            return papers, web_results, academic_results
+            return papers, web_results
             
         except Exception:
             logger.error(f"Error in comprehensive search: {traceback.format_exc()}")
-            return [], [], []
+            return [], []
 
     async def process_state(self, state: SearchState) -> SearchState:
         """
@@ -250,12 +219,11 @@ class SearchAgent:
             query = state["query"]
             
             # Perform comprehensive search
-            papers, web_results, academic_results = await self.comprehensive_search(query)
+            papers, web_results = await self.comprehensive_search(query)
             
             # Update state
             state["papers"] = papers
             state["web_results"] = web_results
-            state["academic_results"] = academic_results
             state["error"] = None
             
             return state
@@ -265,7 +233,6 @@ class SearchAgent:
             state["error"] = str(e)
             state["papers"] = []
             state["web_results"] = []
-            state["academic_results"] = []
             return state
 
 

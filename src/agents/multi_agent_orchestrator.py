@@ -194,7 +194,8 @@ class MultiAgentOrchestrator:
 
         return builder.compile()
 
-    def _should_continue_after_security(self, state: MultiAgentState) -> str:
+    @staticmethod
+    def _should_continue_after_security(state: MultiAgentState) -> str:
         """Determine whether to continue with query analysis or skip to summary."""
         if not state.get("is_safe", True):
             logger.info("Skipping query analysis due to security threat")

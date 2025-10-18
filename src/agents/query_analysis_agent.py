@@ -64,7 +64,7 @@ class QueryAnalysisAgent:
             logger.info(f"Query analysis completed: '{query}' -> '{cleaned_query}'")
             return cleaned_query
 
-        except Exception as e:
+        except Exception:
             logger.error(f"Error analyzing query: {traceback.format_exc()}")
             # Return original query if analysis fails
             return query

@@ -26,102 +26,52 @@ class QueryAnalysisAgent:
 
     async def analyze_query(self, query: str) -> str:
         """
-        Analyze the research query and return an optimized query string.
+        Summarize the user query and return it in JSON format.
         
         Args:
             query: The original research query (already sanitized by security agent)
             
         Returns:
-            Optimized query string for research
+            JSON string containing summarized query
         """
         try:
             logger.info(f"Analyzing query: {query}")
 
-            # Use LLM to analyze and optimize the query
+            # Use LLM to summarize the query and format as JSON
             analysis_prompt = f"""
             SYSTEM:
-            You are a research query optimizer. Your job is to analyze user queries and return 
-            clean, research-focused query strings optimized for academic paper search.
+            You are a query summarizer. Your job is to analyze user queries and provide 
+            a clear, concise summary in JSON format.
             
-            USER QUERY TO ANALYZE:
+            USER QUERY TO SUMMARIZE:
             {query}
             
-            Please analyze this query and return a clean, research-focused query string that:
-            - Focuses on academic research topics
-            - Uses proper academic terminology
-            - Removes any non-research related content
-            - Is optimized for paper search engines like ArXiv
-            - Maintains the core research intent
+            Please analyze this query and provide a JSON object that summarizes:
+            - The main topic or subject
+            - The specific aspect or focus area
+            - Any key terms or concepts mentioned
             
-            Return ONLY the optimized query string, no explanations or additional text.
+            Return ONLY a JSON object with this structure:
+            {{
+                "main_topic": "primary subject area",
+                "focus_area": "specific aspect being asked about", 
+                "key_terms": ["term1", "term2", "term3"],
+                "query_summary": "concise summary of what the user is asking"
+            }}
+            
+            Do not include any other text, explanations, or additional data.
             """
 
             response = await llm_service.ainvoke_chat(analysis_prompt)
             
-            # Clean the response to ensure it's just a query string
-            cleaned_query = self._clean_response(response)
-            
-            logger.info(f"Query analysis completed: '{query}' -> '{cleaned_query}'")
-            return cleaned_query
+            # Return the JSON response directly
+            logger.info(f"Query analysis completed: '{query}' -> JSON summary received")
+            return response.strip()
 
         except Exception:
             logger.error(f"Error analyzing query: {traceback.format_exc()}")
             # Return original query if analysis fails
             return query
-
-    @staticmethod
-    def _clean_response(response: str) -> str:
-        """
-        Clean the LLM response to extract just the query string.
-        
-        Args:
-            response: Raw LLM response
-            
-        Returns:
-            Cleaned query string
-        """
-        # Remove common prefixes/suffixes
-        prefixes_to_remove = [
-            "here is the optimized query:",
-            "the optimized query is:",
-            "query:",
-            "research query:",
-            "optimized query:",
-            "cleaned query:",
-        ]
-        
-        suffixes_to_remove = [
-            "this query focuses on",
-            "this query is optimized for",
-            "the query has been optimized",
-            "this query is designed for",
-        ]
-        
-        cleaned = response.strip()
-        
-        # Remove prefixes
-        for prefix in prefixes_to_remove:
-            if cleaned.lower().startswith(prefix.lower()):
-                cleaned = cleaned[len(prefix):].strip()
-                break
-        
-        # Remove suffixes
-        for suffix in suffixes_to_remove:
-            if cleaned.lower().endswith(suffix.lower()):
-                cleaned = cleaned[:-len(suffix)].strip()
-                break
-        
-        # Remove quotes if present
-        if cleaned.startswith('"') and cleaned.endswith('"'):
-            cleaned = cleaned[1:-1]
-        elif cleaned.startswith("'") and cleaned.endswith("'"):
-            cleaned = cleaned[1:-1]
-        
-        # Ensure it's not empty
-        if not cleaned.strip():
-            return "artificial intelligence research"
-        
-        return cleaned.strip()
 
     async def process_state(self, state: QueryAnalysisState) -> QueryAnalysisState:
         """

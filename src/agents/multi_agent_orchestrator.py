@@ -13,6 +13,7 @@ from ..models.schemas import ResearchResult
 from ..vectorstore.faiss_store import vector_store
 from .query_analysis_agent import QueryAnalysisState, query_analysis_agent
 from .search_agent import SearchState, search_agent
+from .security_agent import SecurityState, security_agent
 from .summary_agent import SummaryState, summary_agent
 
 
@@ -23,10 +24,16 @@ class MultiAgentState(TypedDict):
     research_query: str
     conversation_history: list[dict[str, Any]]
     
+    # Security Analysis
+    original_input: str
+    sanitized_input: str
+    is_safe: bool
+    threat_level: str
+    detected_threats: list[str]
+    
     # Query Analysis
     original_query: str
     analyzed_query: str
-    is_safe: bool
     
     # Search Results
     papers: list
@@ -51,6 +58,7 @@ class MultiAgentOrchestrator:
         
         # Initialize agents
         self.agents = {
+            "security": security_agent,
             "query_analysis": query_analysis_agent,
             "search": search_agent,
             "summary": summary_agent,
@@ -91,15 +99,19 @@ class MultiAgentOrchestrator:
             initial_state: MultiAgentState = {
                 "research_query": query,
                 "conversation_history": conversation_history or [],
+                "original_input": query,
+                "sanitized_input": "",
+                "is_safe": True,
+                "threat_level": "none",
+                "detected_threats": [],
                 "original_query": query,
                 "analyzed_query": "",
-                "is_safe": True,
                 "papers": [],
                 "web_results": [],
                 "academic_results": [],
                 "summary": "",
                 "research_result": None,
-                "current_step": "query_analysis",
+                "current_step": "security",
                 "error": None,
             }
 
@@ -158,12 +170,23 @@ class MultiAgentOrchestrator:
         builder = StateGraph(MultiAgentState)
 
         # Add nodes for each agent
+        builder.add_node("security", self._security_node)
         builder.add_node("query_analysis", self._query_analysis_node)
         builder.add_node("search", self._search_node)
         builder.add_node("summary", self._summary_node)
 
         # Add edges
-        builder.set_entry_point("query_analysis")
+        builder.set_entry_point("security")
+        
+        # Conditional routing based on security analysis
+        builder.add_conditional_edges(
+            "security",
+            self._should_continue_after_security,
+            {
+                "continue": "query_analysis",
+                "skip_to_summary": "summary"
+            }
+        )
         
         builder.add_edge("query_analysis", "search")
         builder.add_edge("search", "summary")
@@ -171,15 +194,67 @@ class MultiAgentOrchestrator:
 
         return builder.compile()
 
+    def _should_continue_after_security(self, state: MultiAgentState) -> str:
+        """Determine whether to continue with query analysis or skip to summary."""
+        if not state.get("is_safe", True):
+            logger.info("Skipping query analysis due to security threat")
+            return "skip_to_summary"
+        else:
+            logger.info("Continuing with query analysis after security check")
+            return "continue"
+
+    async def _security_node(self, state: MultiAgentState) -> MultiAgentState:
+        """Security analysis node."""
+        try:
+            logger.info("Executing security node")
+            
+            security_state: SecurityState = {
+                "original_input": state["research_query"],
+                "sanitized_input": "",
+                "is_safe": True,
+                "threat_level": "none",
+                "detected_threats": [],
+                "error": None,
+            }
+            
+            result_state = await self.agents["security"].process_state(security_state)
+            
+            # Update state with security results
+            state["original_input"] = result_state["original_input"]
+            state["sanitized_input"] = result_state["sanitized_input"]
+            state["is_safe"] = result_state["is_safe"]
+            state["threat_level"] = result_state["threat_level"]
+            state["detected_threats"] = result_state["detected_threats"]
+            state["current_step"] = "query_analysis"
+            state["error"] = result_state.get("error")
+            
+            # Log security analysis results
+            if not state["is_safe"]:
+                logger.warning(f"Security threat detected: {state['threat_level']} - {state['detected_threats']}")
+            else:
+                logger.info("Security analysis passed - input is safe")
+            
+            return state
+            
+        except Exception as e:
+            logger.error(f"Error in security node: {traceback.format_exc()}")
+            state["error"] = str(e)
+            state["is_safe"] = False
+            state["threat_level"] = "critical"
+            state["sanitized_input"] = "artificial intelligence research"
+            return state
+
     async def _query_analysis_node(self, state: MultiAgentState) -> MultiAgentState:
         """Query analysis node."""
         try:
             logger.info("Executing query analysis node")
             
+            # Use sanitized input from security analysis
+            input_query = state["sanitized_input"] if state["sanitized_input"] else state["research_query"]
+            
             query_state: QueryAnalysisState = {
-                "original_query": state["research_query"],
+                "original_query": input_query,
                 "analyzed_query": "",
-                "is_safe": True,
                 "error": None,
             }
             
@@ -187,7 +262,6 @@ class MultiAgentOrchestrator:
             
             state["original_query"] = result_state["original_query"]
             state["analyzed_query"] = result_state["analyzed_query"]
-            state["is_safe"] = result_state["is_safe"]
             state["current_step"] = "search"
             state["error"] = result_state.get("error")
             
@@ -239,6 +313,28 @@ class MultiAgentOrchestrator:
         try:
             logger.info("Executing summary node")
             
+            # Check if we skipped processing due to security threats
+            if not state.get("is_safe", True):
+                logger.info("Creating security-aware summary for unsafe query")
+                state["summary"] = f"Security analysis detected a {state.get('threat_level', 'unknown')} level threat in the query. The query has been sanitized and processed safely. No research results were generated due to security concerns."
+                
+                # Create a minimal research result
+                state["research_result"] = ResearchResult(
+                    query=state["research_query"],
+                    summary=state["summary"],
+                    papers=[],
+                    web_results=[],
+                    academic_results=[],
+                    sources=["security_analysis"],
+                    total_found=0,
+                    search_time=0.0,
+                    error=state.get("error")
+                )
+                
+                state["current_step"] = "completed"
+                return state
+            
+            # Normal summary processing for safe queries
             summary_state: SummaryState = {
                 "papers": state["papers"],
                 "web_results": state["web_results"],

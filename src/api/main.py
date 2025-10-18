@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from loguru import logger
 
-from ..agents.researcher_agent import researcher_agent
+from ..agents.multi_agent_orchestrator import multi_agent_orchestrator
 from ..config.settings import settings
 from ..models.schemas import (
     ChatRequest,
@@ -111,7 +111,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
         logger.info(f"Processing chat request: {request.message}")
 
         # Perform research
-        research_result = await researcher_agent.research(
+        research_result = await multi_agent_orchestrator.research(
             query=request.message,
             conversation_history=conversation_history,
         )
@@ -132,7 +132,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
 
         # Add papers to vector store for future similarity search
         if research_result.papers:
-            researcher_agent.add_papers_to_vector_store(research_result.papers)
+            multi_agent_orchestrator.add_papers_to_vector_store(research_result.papers)
 
         return ChatResponse(
             message=response_message,
@@ -167,7 +167,7 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
                 yield f"data: {json.dumps(StreamingChunk(content='Starting research...', conversation_id=conversation_id).model_dump())}\n\n"
 
                 # Perform research
-                research_result = await researcher_agent.research(
+                research_result = await multi_agent_orchestrator.research(
                     query=request.message,
                     conversation_history=conversation_history,
                 )
@@ -210,7 +210,7 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
 
                 # Add papers to vector store
                 if research_result.papers:
-                    researcher_agent.add_papers_to_vector_store(research_result.papers)
+                    multi_agent_orchestrator.add_papers_to_vector_store(research_result.papers)
 
             except Exception as e:
                 logger.error(f"Error in streaming: {traceback.format_exc()}")
@@ -268,7 +268,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
 
             try:
                 # Perform research
-                research_result = await researcher_agent.research(
+                research_result = await multi_agent_orchestrator.research(
                     query=ws_message.message,
                     conversation_history=conversation_history,
                 )
@@ -323,7 +323,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
 
                 # Add papers to vector store
                 if research_result.papers:
-                    researcher_agent.add_papers_to_vector_store(research_result.papers)
+                    multi_agent_orchestrator.add_papers_to_vector_store(research_result.papers)
 
             except Exception as e:
                 logger.error(f"Error in WebSocket processing: {traceback.format_exc()}")

@@ -33,7 +33,7 @@ def create_embeddings_model_instance() -> Embeddings:
             )
         case ModelType.ollama:
             return OllamaEmbeddings(
-                model=settings.model.ollama.embedding_model  # например "text-embedding-3-small"
+                model=settings.model.ollama.embedding_model
             )
         case _:
             raise NotImplementedError(f"Model {settings.model.type} is not supported.")

@@ -63,7 +63,8 @@ class ArxivTool(BaseTool):
 
             # Perform search
             search = arxiv.Search(**search_params)
-            results = list(search.results())
+            client = arxiv.Client()
+            results = list(client.results(search))
 
             papers = []
             for result in results:
@@ -78,14 +79,14 @@ class ArxivTool(BaseTool):
                         categories=result.categories,
                     )
                     papers.append(paper)
-                except Exception as e:
+                except Exception:
                     logger.warning(f"Error processing paper {result.title}: {traceback.format_exc()}")
                     continue
 
             logger.info(f"Found {len(papers)} papers from ArXiv")
             return papers
 
-        except Exception as e:
+        except Exception:
             logger.error(f"Error searching ArXiv: {traceback.format_exc()}")
             return []
 
@@ -151,14 +152,15 @@ class RecentPapersTool(BaseTool):
             )
 
             # Search with date filter
+            arxiv.Client()
             search = arxiv.Search(
                 query=date_query,
                 max_results=min(max_results, settings.researcher.arxiv_max_results),
                 sort_by=arxiv.SortCriterion.SubmittedDate,
                 sort_order=arxiv.SortOrder.Descending,
             )
-
-            results = list(search.results())
+            client = arxiv.Client()
+            results = list(client.results(search))
 
             papers = []
             for result in results:
@@ -173,14 +175,14 @@ class RecentPapersTool(BaseTool):
                         categories=result.categories,
                     )
                     papers.append(paper)
-                except Exception as e:
+                except Exception:
                     logger.warning(f"Error processing paper {result.title}: {traceback.format_exc()}")
                     continue
 
             logger.info(f"Found {len(papers)} recent papers in {category}")
             return papers
 
-        except Exception as e:
+        except Exception:
             logger.error(f"Error searching recent papers: {traceback.format_exc()}")
             return []
 

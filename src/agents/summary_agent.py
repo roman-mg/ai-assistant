@@ -32,11 +32,11 @@ class SummaryAgent:
     async def summarize_papers(self, papers: list[Paper], query: str) -> str:
         """
         Summarize a list of research papers.
-        
+
         Args:
             papers: List of papers to summarize
             query: Original research query
-            
+
         Returns:
             Summary string
         """
@@ -48,10 +48,10 @@ class SummaryAgent:
 
             # Create summary prompt
             summary_prompt = self._create_paper_summary_prompt(papers, query)
-            
+
             # Get summary from LLM
             summary = await llm_service.ainvoke_chat(summary_prompt)
-            
+
             logger.info("Successfully generated paper summary")
             return summary
 
@@ -62,11 +62,11 @@ class SummaryAgent:
     async def summarize_web_results(self, web_results: list[dict], query: str) -> str:
         """
         Summarize web search results.
-        
+
         Args:
             web_results: List of web search results
             query: Original research query
-            
+
         Returns:
             Summary string
         """
@@ -78,10 +78,10 @@ class SummaryAgent:
 
             # Create web summary prompt
             web_summary_prompt = self._create_web_summary_prompt(web_results, query)
-            
+
             # Get summary from LLM
             summary = await llm_service.ainvoke_chat(web_summary_prompt)
-            
+
             logger.info("Successfully generated web results summary")
             return summary
 
@@ -90,21 +90,17 @@ class SummaryAgent:
             return f"Error generating web summary: {str(e)}"
 
     async def create_comprehensive_summary(
-        self, 
-        papers: list[Paper], 
-        web_results: list[dict], 
-        academic_results: list[dict], 
-        query: str
+        self, papers: list[Paper], web_results: list[dict], academic_results: list[dict], query: str
     ) -> str:
         """
         Create a comprehensive summary of all search results.
-        
+
         Args:
             papers: List of research papers
             web_results: List of web search results
             academic_results: List of academic search results
             query: Original research query
-            
+
         Returns:
             Comprehensive summary string
         """
@@ -115,10 +111,10 @@ class SummaryAgent:
             comprehensive_prompt = self._create_comprehensive_summary_prompt(
                 papers, web_results, academic_results, query
             )
-            
+
             # Get comprehensive summary from LLM
             summary = await llm_service.ainvoke_chat(comprehensive_prompt)
-            
+
             logger.info("Successfully generated comprehensive summary")
             return summary
 
@@ -131,12 +127,14 @@ class SummaryAgent:
         """Create prompt for paper summarization."""
         papers_info = []
         for i, paper in enumerate(papers[:10], 1):  # Limit to top 10 papers
-            papers_info.append(f"""
+            papers_info.append(
+                f"""
             Paper {i}:
             Title: {paper.title}
-            Authors: {', '.join(paper.authors[:3])}{'...' if len(paper.authors) > 3 else ''}
-            Abstract: {paper.abstract[:500]}{'...' if len(paper.abstract) > 500 else ''}
-            """)
+            Authors: {", ".join(paper.authors[:3])}{"..." if len(paper.authors) > 3 else ""}
+            Abstract: {paper.abstract[:500]}{"..." if len(paper.abstract) > 500 else ""}
+            """
+            )
 
         return f"""
         Please provide a comprehensive summary of the following research papers related to the query: "{query}"
@@ -159,13 +157,15 @@ class SummaryAgent:
         """Create prompt for web results summarization."""
         web_info = []
         for i, result in enumerate(web_results[:5], 1):  # Limit to top 5 results
-            title = result.get('title', 'No title')
-            snippet = result.get('snippet', result.get('description', 'No description'))
-            web_info.append(f"""
+            title = result.get("title", "No title")
+            snippet = result.get("snippet", result.get("description", "No description"))
+            web_info.append(
+                f"""
             Result {i}:
             Title: {title}
-            Content: {snippet[:300]}{'...' if len(snippet) > 300 else ''}
-            """)
+            Content: {snippet[:300]}{"..." if len(snippet) > 300 else ""}
+            """
+            )
 
         return f"""
         Please provide a summary of the following web search results related to the query: "{query}"
@@ -184,34 +184,31 @@ class SummaryAgent:
 
     @staticmethod
     def _create_comprehensive_summary_prompt(
-        papers: list[Paper], 
-        web_results: list[dict], 
-        academic_results: list[dict], 
-        query: str
+        papers: list[Paper], web_results: list[dict], academic_results: list[dict], query: str
     ) -> str:
         """Create prompt for comprehensive summarization."""
-        
+
         # Paper summaries
         papers_summary = ""
         if papers:
             papers_summary = f"\n\nResearch Papers Found ({len(papers)} papers):\n"
             for i, paper in enumerate(papers[:5], 1):
                 papers_summary += f"{i}. {paper.title} - {', '.join(paper.authors[:2])}\n"
-        
+
         # Web results summary
         web_summary = ""
         if web_results:
             web_summary = f"\n\nWeb Search Results ({len(web_results)} results):\n"
             for i, result in enumerate(web_results[:3], 1):
-                title = result.get('title', 'No title')
+                title = result.get("title", "No title")
                 web_summary += f"{i}. {title}\n"
-        
+
         # Academic results summary
         academic_summary = ""
         if academic_results:
             academic_summary = f"\n\nAcademic Search Results ({len(academic_results)} results):\n"
             for i, result in enumerate(academic_results[:3], 1):
-                title = result.get('title', 'No title')
+                title = result.get("title", "No title")
                 academic_summary += f"{i}. {title}\n"
 
         return f"""
@@ -232,23 +229,23 @@ class SummaryAgent:
         """
 
     async def create_research_result(
-        self, 
-        papers: list[Paper], 
-        web_results: list[dict], 
-        academic_results: list[dict], 
+        self,
+        papers: list[Paper],
+        web_results: list[dict],
+        academic_results: list[dict],
         query: str,
-        search_time: float = 0.0
+        search_time: float = 0.0,
     ) -> ResearchResult:
         """
         Create a ResearchResult object with summary.
-        
+
         Args:
             papers: List of research papers
             web_results: List of web search results
             academic_results: List of academic search results
             query: Original research query
             search_time: Time taken for search
-            
+
         Returns:
             ResearchResult object
         """
@@ -256,9 +253,7 @@ class SummaryAgent:
             logger.info("Creating research result with summary")
 
             # Create comprehensive summary
-            summary = await self.create_comprehensive_summary(
-                papers, web_results, academic_results, query
-            )
+            summary = await self.create_comprehensive_summary(papers, web_results, academic_results, query)
 
             # Determine sources used
             sources = ["arxiv"]
@@ -276,7 +271,7 @@ class SummaryAgent:
                 search_query=query,
                 search_time=search_time,
                 sources=sources,
-                summary=summary
+                summary=summary,
             )
 
             logger.info("Successfully created research result")
@@ -296,10 +291,10 @@ class SummaryAgent:
     async def process_state(self, state: SummaryState) -> SummaryState:
         """
         Process the summary state.
-        
+
         Args:
             state: Current state containing search results
-            
+
         Returns:
             Updated state with summary and research result
         """
@@ -308,24 +303,20 @@ class SummaryAgent:
             web_results = state["web_results"]
             academic_results = state["academic_results"]
             query = state["query"]
-            
+
             # Create comprehensive summary
-            summary = await self.create_comprehensive_summary(
-                papers, web_results, academic_results, query
-            )
-            
+            summary = await self.create_comprehensive_summary(papers, web_results, academic_results, query)
+
             # Create research result
-            research_result = await self.create_research_result(
-                papers, web_results, academic_results, query
-            )
-            
+            research_result = await self.create_research_result(papers, web_results, academic_results, query)
+
             # Update state
             state["summary"] = summary
             state["research_result"] = research_result
             state["error"] = None
-            
+
             return state
-            
+
         except Exception as e:
             logger.error(f"Error processing summary state: {traceback.format_exc()}")
             state["error"] = str(e)

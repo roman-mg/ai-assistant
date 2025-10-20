@@ -2,7 +2,10 @@
 
 import asyncio
 import sys
+import traceback
 from pathlib import Path
+
+from loguru import logger
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -10,53 +13,45 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 from src.agents.multi_agent_orchestrator import multi_agent_orchestrator
 
 
-async def test_multi_agent_system():
+async def test_multi_agent_system() -> None:
     """Test the 3-agent multi-agent system with a simple query."""
-    print("Testing 3-Agent Multi-Agent System")
-    print("=" * 50)
-    
+    logger.info("Testing 3-Agent Multi-Agent System")
+    logger.info("=" * 50)
+
     try:
         # Test query
         test_query = "machine learning optimization algorithms"
-        print(f"Test Query: {test_query}")
-        print()
-        
+        logger.info(f"Test Query: {test_query}\n")
+
         # Run research
-        print("Running multi-agent research...")
-        result = await multi_agent_orchestrator.research(
-            query=test_query,
-            conversation_history=[]
-        )
-        
+        logger.info("Running multi-agent research...")
+        result = await multi_agent_orchestrator.research(query=test_query, conversation_history=[])
+
         # Display results
-        print(f"\nResearch Results:")
-        print(f"- Total papers found: {result.total_found}")
-        print(f"- Search time: {result.search_time:.2f}s")
-        print(f"- Sources used: {', '.join(result.sources)}")
-        
+        logger.info("\nResearch Results:")
+        logger.info(f"- Total papers found: {result.total_found}")
+        logger.info(f"- Search time: {result.search_time:.2f}s")
+        logger.info(f"- Sources used: {', '.join(result.sources)}")
+
         if result.papers:
-            print(f"\nTop 3 Papers:")
+            logger.info("\nTop 3 Papers:")
             for i, paper in enumerate(result.papers[:3], 1):
-                print(f"{i}. {paper.title}")
-                print(f"   Authors: {', '.join(paper.authors[:2])}{'...' if len(paper.authors) > 2 else ''}")
-                print(f"   Summary: {paper.summary[:100]}{'...' if len(paper.summary) > 100 else ''}")
-                print()
-        
+                logger.info(f"{i}. {paper.title}")
+                logger.info(f"   Authors: {', '.join(paper.authors[:2])}{'...' if len(paper.authors) > 2 else ''}")
+                logger.info(f"   Summary: {paper.summary[:100]}{'...' if len(paper.summary) > 100 else ''}\n")
+
         # Display summary if available
-        if hasattr(result, 'metadata') and result.metadata and 'summary' in result.metadata:
-            print(f"\nComprehensive Summary:")
-            print(f"{result.metadata['summary'][:300]}{'...' if len(result.metadata['summary']) > 300 else ''}")
-            print()
-        
+        if hasattr(result, "metadata") and result.metadata and "summary" in result.metadata:
+            logger.info("\nComprehensive Summary:")
+            logger.info(f"{result.metadata['summary'][:300]}{'...' if len(result.metadata['summary']) > 300 else ''}\n")
+
         if result.error:
-            print(f"Error: {result.error}")
-        
-        print("✅ 3-agent multi-agent system test completed successfully!")
-        
-    except Exception as e:
-        print(f"❌ Error during test: {e}")
-        import traceback
-        traceback.print_exc()
+            logger.info(f"Error: {result.error}")
+
+        logger.info("✅ 3-agent multi-agent system test completed successfully!")
+
+    except Exception:
+        logger.info(f"❌ Error during test: {traceback.format_exc()}")
 
 
 if __name__ == "__main__":

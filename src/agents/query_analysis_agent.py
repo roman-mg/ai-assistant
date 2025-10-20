@@ -27,10 +27,10 @@ class QueryAnalysisAgent:
     async def analyze_query(self, query: str) -> str:
         """
         Summarize the user query and return it in JSON format.
-        
+
         Args:
             query: The original research query (already sanitized by security agent)
-            
+
         Returns:
             JSON string containing summarized query
         """
@@ -63,7 +63,7 @@ class QueryAnalysisAgent:
             """
 
             response = await llm_service.ainvoke_chat(analysis_prompt)
-            
+
             # Return the JSON response directly
             logger.info(f"Query analysis completed: '{query}' -> JSON summary received")
             return response.strip()
@@ -76,22 +76,22 @@ class QueryAnalysisAgent:
     async def process_state(self, state: QueryAnalysisState) -> QueryAnalysisState:
         """
         Process the query analysis state.
-        
+
         Args:
             state: Current state containing original query
-            
+
         Returns:
             Updated state with analyzed query
         """
         try:
             original_query = state["original_query"]
             analyzed_query = await self.analyze_query(original_query)
-            
+
             state["analyzed_query"] = analyzed_query
             state["error"] = None
-            
+
             return state
-            
+
         except Exception as e:
             logger.error(f"Error processing query analysis state: {traceback.format_exc()}")
             state["error"] = str(e)

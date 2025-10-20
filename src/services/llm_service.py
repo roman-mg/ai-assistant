@@ -2,8 +2,8 @@
 
 import traceback
 
-from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.embeddings import Embeddings
+from langchain_core.language_models.chat_models import BaseChatModel
 from loguru import logger
 
 from ..di.fabric import create_embeddings_model_instance, create_llm_instance

@@ -20,10 +20,7 @@ class WebSearchInput(BaseModel):
         ge=1,
         le=20,
     )
-    academic_focus: bool = Field(
-        default=False,
-        description="Whether to focus on academic content"
-    )
+    academic_focus: bool = Field(default=False, description="Whether to focus on academic content")
 
 
 class WebSearchTool(BaseTool):
@@ -41,21 +38,11 @@ class WebSearchTool(BaseTool):
         """Initialize the web search tool."""
         super().__init__()
 
-    def _run(
-        self,
-        query: str,
-        max_results: int = 5,
-        academic_focus: bool = False
-    ) -> list[dict]:
+    def _run(self, query: str, max_results: int = 5, academic_focus: bool = False) -> list[dict]:
         """Perform web search and return results (sync wrapper)."""
         return asyncio.run(self._arun(query, max_results, academic_focus))
 
-    async def _arun(
-        self,
-        query: str,
-        max_results: int = 5,
-        academic_focus: bool = False
-    ) -> list[dict]:
+    async def _arun(self, query: str, max_results: int = 5, academic_focus: bool = False) -> list[dict]:
         """Perform web search using MCP only."""
         if not settings.web_search.enabled:
             logger.info("Web search is disabled")
@@ -81,29 +68,22 @@ class WebSearchTool(BaseTool):
         try:
             search_type = "academic" if academic_focus else "general"
             logger.info(f"Using MCP for {search_type} Wikipedia search")
-            
+
             # MCP Wikipedia search implementation
             method = "academic_wikipedia_search" if academic_focus else "wikipedia_search"
-            mcp_request = {
-                "method": method,
-                "params": {
-                    "query": query,
-                    "max_results": max_results,
-                    "language": "en"
-                }
-            }
-            
+            mcp_request = {"method": method, "params": {"query": query, "max_results": max_results, "language": "en"}}
+
             # Add academic focus parameter if needed
             if academic_focus:
                 mcp_request["params"]["focus"] = "academic"
-            
+
             logger.info(f"MCP request: {mcp_request}")
-            
+
             # TODO: Implement actual MCP client call
             # This should call a real MCP server that handles Wikipedia search
             logger.warning("MCP client not implemented - returning empty results")
             return []
-            
+
         except Exception:
             logger.error(f"Error in MCP Wikipedia search: {traceback.format_exc()}")
             return []

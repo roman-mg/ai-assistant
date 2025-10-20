@@ -14,7 +14,6 @@ from src.models.schemas import (
 )
 from src.vectorstore.faiss_store import vector_store
 
-
 conversations: dict[str, list[dict[str, str]]] = {}
 
 
@@ -53,7 +52,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
     )
 
     # Update conversation storage
-    conversations[conversation_id] = conversation_history[-settings.conversation.max_history:]
+    conversations[conversation_id] = conversation_history[-settings.conversation.max_history :]
 
     # Add papers to vector store for future similarity search
     if research_result.papers:

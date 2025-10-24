@@ -34,6 +34,13 @@ class MultiAgentState(TypedDict):
     # Query Analysis
     original_query: str
     analyzed_query: str
+    suggested_query: str | None
+    analysis_data: dict[str, Any] | None
+    requires_hitl: bool
+
+    # HITL Session
+    hitl_session_id: str | None
+    conversation_id: str | None
 
     # Search Results
     papers: list
@@ -80,6 +87,7 @@ class MultiAgentOrchestrator:
         self,
         query: str,
         conversation_history: list[dict[str, Any]] = None,
+        conversation_id: str | None = None,
     ) -> ResearchResult:
         """
         Perform research using the multi-agent system.
@@ -87,6 +95,7 @@ class MultiAgentOrchestrator:
         Args:
             query: Research query
             conversation_history: Previous conversation context
+            conversation_id: Conversation identifier for HITL
 
         Returns:
             Research result with papers and summary
@@ -99,6 +108,7 @@ class MultiAgentOrchestrator:
             initial_state: MultiAgentState = {
                 "research_query": query,
                 "conversation_history": conversation_history or [],
+                "conversation_id": conversation_id,
                 "original_input": query,
                 "sanitized_input": "",
                 "is_safe": True,
@@ -106,6 +116,10 @@ class MultiAgentOrchestrator:
                 "detected_threats": [],
                 "original_query": query,
                 "analyzed_query": "",
+                "suggested_query": None,
+                "analysis_data": None,
+                "requires_hitl": False,
+                "hitl_session_id": None,
                 "papers": [],
                 "web_results": [],
                 "academic_results": [],
@@ -149,6 +163,105 @@ class MultiAgentOrchestrator:
                 error=str(e),
             )
 
+    async def continue_with_confirmed_query(
+        self,
+        hitl_session_id: str,
+        confirmed_query: str,
+    ) -> ResearchResult:
+        """
+        Continue research with a confirmed query from HITL session.
+
+        Args:
+            hitl_session_id: HITL session identifier
+            confirmed_query: User-confirmed query
+
+        Returns:
+            Research result with papers and summary
+        """
+        from ..services.hitl_service import hitl_service
+
+        session = hitl_service.get_session(hitl_session_id)
+        if not session:
+            logger.error(f"HITL session {hitl_session_id} not found")
+            return ResearchResult(
+                papers=[],
+                total_found=0,
+                search_query=confirmed_query,
+                search_time=0.0,
+                sources=[],
+                error="HITL session not found or expired",
+            )
+
+        logger.info(f"Continuing research with confirmed query from session {hitl_session_id}: {confirmed_query}")
+        start_time = time.time()
+
+        try:
+            # Initialize state for continuing from search
+            initial_state: MultiAgentState = {
+                "research_query": confirmed_query,
+                "conversation_history": [],
+                "conversation_id": session.conversation_id,
+                "original_input": confirmed_query,
+                "sanitized_input": confirmed_query,
+                "is_safe": True,
+                "threat_level": "none",
+                "detected_threats": [],
+                "original_query": confirmed_query,
+                "analyzed_query": session.original_query,  # Use original analysis
+                "suggested_query": None,
+                "analysis_data": session.analysis_data,
+                "requires_hitl": False,
+                "hitl_session_id": hitl_session_id,
+                "papers": [],
+                "web_results": [],
+                "academic_results": [],
+                "summary": "",
+                "research_result": None,
+                "current_step": "search",
+                "error": None,
+            }
+
+            # Execute search and summary directly
+            state = await self._search_node(initial_state)
+            final_state = await self._summary_node(state)
+
+            # Calculate search time
+            search_time = time.time() - start_time
+
+            # Get research result
+            if final_state.get("research_result"):
+                result = final_state["research_result"]
+                result.search_time = search_time
+            else:
+                # Fallback: create basic result
+                result = ResearchResult(
+                    papers=final_state.get("papers", []),
+                    total_found=len(final_state.get("papers", [])),
+                    search_query=confirmed_query,
+                    search_time=search_time,
+                    sources=self._determine_sources(final_state),
+                )
+
+            logger.info(
+                f"Research with confirmed query completed in {search_time:.2f}s, found {len(result.papers)} papers"
+            )
+
+            # Clean up HITL session
+            hitl_service.delete_session(hitl_session_id)
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Error in continued research: {traceback.format_exc()}")
+            return ResearchResult(
+                papers=[],
+                total_found=0,
+                search_query=confirmed_query,
+                search_time=time.time() - start_time,
+                sources=[],
+                error=str(e),
+            )
+
     @staticmethod
     def _determine_sources(state: MultiAgentState) -> list[str]:
         """Determine which sources were used based on state."""
@@ -185,11 +298,28 @@ class MultiAgentOrchestrator:
             {"continue": "query_analysis", "skip_to_summary": "summary"},
         )
 
-        builder.add_edge("query_analysis", "search")
+        # Conditional routing after query analysis (HITL check)
+        builder.add_conditional_edges(
+            "query_analysis",
+            self._should_continue_after_query_analysis,
+            {"continue": "search", "await_hitl": END},
+        )
         builder.add_edge("search", "summary")
         builder.add_edge("summary", END)
 
         return builder.compile()
+
+    @staticmethod
+    def _should_continue_after_query_analysis(state: MultiAgentState) -> str:
+        """Determine whether to continue with search or await HITL confirmation."""
+        if state.get("requires_hitl", False):
+            logger.info("Pausing workflow for HITL confirmation")
+            action = "await_hitl"
+        else:
+            logger.info("Continuing with search")
+            action = "continue"
+
+        return action
 
     @staticmethod
     def _should_continue_after_security(state: MultiAgentState) -> str:
@@ -255,6 +385,9 @@ class MultiAgentOrchestrator:
             query_state: QueryAnalysisState = {
                 "original_query": input_query,
                 "analyzed_query": "",
+                "suggested_query": None,
+                "analysis_data": None,
+                "requires_hitl": False,
                 "error": None,
             }
 
@@ -262,8 +395,25 @@ class MultiAgentOrchestrator:
 
             state["original_query"] = result_state["original_query"]
             state["analyzed_query"] = result_state["analyzed_query"]
-            state["current_step"] = "search"
+            state["suggested_query"] = result_state.get("suggested_query")
+            state["analysis_data"] = result_state.get("analysis_data")
+            state["requires_hitl"] = result_state.get("requires_hitl", False)
             state["error"] = result_state.get("error")
+
+            # HITL is always enabled - create session if required
+            if state["requires_hitl"]:
+                from ..services.hitl_service import hitl_service
+
+                session = hitl_service.create_session(
+                    original_query=state["original_query"],
+                    suggested_query=state["suggested_query"] or state["original_query"],
+                    analysis_data=state["analysis_data"] or {},
+                    conversation_id=state.get("conversation_id"),
+                )
+                state["hitl_session_id"] = session.session_id
+                logger.info(f"Created HITL session {session.session_id} - awaiting user confirmation")
+            else:
+                state["current_step"] = "search"
 
             logger.info(f"Query analysis completed: '{state['original_query']}' -> '{state['analyzed_query']}'")
 
@@ -273,6 +423,7 @@ class MultiAgentOrchestrator:
             logger.error(f"Error in query analysis node: {traceback.format_exc()}")
             state["error"] = str(e)
             state["analyzed_query"] = state["research_query"]  # Fallback to original
+            state["requires_hitl"] = False
             return state
 
     async def _search_node(self, state: MultiAgentState) -> MultiAgentState:

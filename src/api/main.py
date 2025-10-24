@@ -18,6 +18,10 @@ from ..models.schemas import (
     ChatRequest,
     ChatResponse,
     HealthResponse,
+    HITLConfirmRequest,
+    HITLConfirmResponse,
+    HITLQueryAnalysis,
+    HITLSessionResponse,
     PaperSearchRequest,
     PaperSearchResponse,
     ResearchResult,
@@ -92,7 +96,11 @@ async def health_check() -> HealthResponse:
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest) -> ChatResponse:
-    """Main chat endpoint for research queries."""
+    """Main chat endpoint for research queries with HITL enabled.
+
+    Args:
+        request: Chat request
+    """
     try:
         # Generate conversation ID if not provided
         conversation_id = request.conversation_id or str(uuid.uuid4())
@@ -114,9 +122,45 @@ async def chat(request: ChatRequest) -> ChatResponse:
         research_result = await multi_agent_orchestrator.research(
             query=request.message,
             conversation_history=conversation_history,
+            conversation_id=conversation_id,
         )
 
-        # Generate response message
+        # Check if HITL is required (workflow paused for confirmation)
+        if not research_result.papers and not research_result.error:
+            # HITL session created, get session info
+            from ..services.hitl_service import hitl_service
+
+            pending_sessions = hitl_service.get_pending_sessions(conversation_id)
+            if pending_sessions:
+                session = pending_sessions[0]
+                response_message = (
+                    f"I've analyzed your query and have a suggestion to improve it:\n\n"
+                    f"**Original query:** {session.original_query}\n\n"
+                    f"**Suggested improvement:** {session.suggested_query}\n\n"
+                    f"Would you like to:\n"
+                    f"1. Accept the suggested query\n"
+                    f"2. Modify it further\n"
+                    f"3. Keep your original query\n\n"
+                    f"Please use the `/hitl/confirm` endpoint with session_id `{session.session_id}` to continue."
+                )
+
+                # Add assistant response to history
+                conversation_history.append(
+                    {
+                        "role": "assistant",
+                        "content": response_message,
+                    }
+                )
+                conversations[conversation_id] = conversation_history[-settings.conversation.max_history :]
+
+                return ChatResponse(
+                    message=response_message,
+                    conversation_id=conversation_id,
+                    research_results=None,
+                    metadata={"hitl_session_id": session.session_id, "requires_confirmation": True},
+                )
+
+        # Normal flow - generate response message
         response_message = await _generate_chat_response(research_result, request.message)
 
         # Add assistant response to history
@@ -381,6 +425,153 @@ async def get_paper_count() -> dict[str, int]:
 
     except Exception as e:
         logger.error(f"Error getting paper count: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.get("/hitl/session/{session_id}", response_model=HITLSessionResponse)
+async def get_hitl_session(session_id: str) -> HITLSessionResponse:
+    """Get HITL session information."""
+    try:
+        from ..services.hitl_service import hitl_service
+
+        session = hitl_service.get_session(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="HITL session not found or expired")
+
+        return HITLSessionResponse(
+            session_id=session.session_id,
+            original_query=session.original_query,
+            suggested_query=session.suggested_query,
+            analysis_data=HITLQueryAnalysis(**session.analysis_data) if session.analysis_data else HITLQueryAnalysis(),
+            conversation_id=session.conversation_id,
+            status=session.status,
+            created_at=session.created_at,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting HITL session: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.post("/hitl/confirm", response_model=HITLConfirmResponse)
+async def confirm_hitl_query(request: HITLConfirmRequest) -> HITLConfirmResponse:
+    """Confirm or modify the query and continue with research."""
+    try:
+        from ..services.hitl_service import hitl_service
+
+        logger.info(f"Confirming HITL session {request.session_id} with query: {request.final_query}")
+
+        # Confirm the session
+        session = hitl_service.confirm_session(
+            session_id=request.session_id,
+            final_query=request.final_query,
+            user_response=request.user_response,
+        )
+
+        if not session:
+            raise HTTPException(status_code=404, detail="HITL session not found or expired")
+
+        # Continue research with confirmed query
+        research_result = await multi_agent_orchestrator.continue_with_confirmed_query(
+            hitl_session_id=request.session_id,
+            confirmed_query=request.final_query,
+        )
+
+        # Update conversation storage if conversation_id exists
+        if session.conversation_id:
+            conversation_history = conversations.get(session.conversation_id, [])
+
+            # Generate response message
+            response_message = await _generate_chat_response(research_result, request.final_query)
+
+            conversation_history.append(
+                {
+                    "role": "assistant",
+                    "content": response_message,
+                }
+            )
+            conversations[session.conversation_id] = conversation_history[-settings.conversation.max_history :]
+
+            # Add papers to vector store
+            if research_result.papers:
+                multi_agent_orchestrator.add_papers_to_vector_store(research_result.papers)
+
+        return HITLConfirmResponse(
+            session_id=request.session_id,
+            status="confirmed",
+            final_query=request.final_query,
+            message=f"Query confirmed and research completed. Found {len(research_result.papers)} papers.",
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error confirming HITL query: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.post("/hitl/reject/{session_id}", response_model=HITLConfirmResponse)
+async def reject_hitl_query(session_id: str, user_response: str | None = None) -> HITLConfirmResponse:
+    """Reject the suggested query improvement."""
+    try:
+        from ..services.hitl_service import hitl_service
+
+        logger.info(f"Rejecting HITL session {session_id}")
+
+        session = hitl_service.reject_session(
+            session_id=session_id,
+            user_response=user_response,
+        )
+
+        if not session:
+            raise HTTPException(status_code=404, detail="HITL session not found or expired")
+
+        # Delete the session after rejection
+        hitl_service.delete_session(session_id)
+
+        return HITLConfirmResponse(
+            session_id=session_id,
+            status="rejected",
+            final_query=session.original_query,
+            message="Query suggestion rejected. Please provide a new query.",
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error rejecting HITL query: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.get("/hitl/sessions")
+async def list_hitl_sessions(conversation_id: str | None = None) -> dict[str, list[HITLSessionResponse]]:
+    """List all pending HITL sessions, optionally filtered by conversation."""
+    try:
+        from ..services.hitl_service import hitl_service
+
+        sessions = hitl_service.get_pending_sessions(conversation_id)
+
+        session_responses = [
+            HITLSessionResponse(
+                session_id=session.session_id,
+                original_query=session.original_query,
+                suggested_query=session.suggested_query,
+                analysis_data=(
+                    HITLQueryAnalysis(**session.analysis_data) if session.analysis_data else HITLQueryAnalysis()
+                ),
+                conversation_id=session.conversation_id,
+                status=session.status,
+                created_at=session.created_at,
+            )
+            for session in sessions
+        ]
+
+        return {"sessions": session_responses}
+
+    except Exception as e:
+        logger.error(f"Error listing HITL sessions: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 

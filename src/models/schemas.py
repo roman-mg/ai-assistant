@@ -160,3 +160,41 @@ class ErrorResponse(BaseModel):
     error: str = Field(..., description="Error message")
     detail: str | None = Field(default=None, description="Error details")
     timestamp: datetime = Field(default_factory=datetime.now)
+
+
+class HITLQueryAnalysis(BaseModel):
+    """Query analysis data for HITL confirmation."""
+
+    main_topic: str | None = Field(default=None, description="Main topic of query")
+    focus_area: str | None = Field(default=None, description="Specific focus area")
+    key_terms: list[str] = Field(default_factory=list, description="Key terms identified")
+    query_summary: str | None = Field(default=None, description="Query summary")
+
+
+class HITLSessionResponse(BaseModel):
+    """HITL session response model."""
+
+    session_id: str = Field(..., description="Session identifier")
+    original_query: str = Field(..., description="Original user query")
+    suggested_query: str = Field(..., description="AI-suggested improved query")
+    analysis_data: HITLQueryAnalysis = Field(..., description="Query analysis metadata")
+    conversation_id: str | None = Field(default=None, description="Conversation context")
+    status: str = Field(..., description="Session status")
+    created_at: float = Field(..., description="Session creation timestamp")
+
+
+class HITLConfirmRequest(BaseModel):
+    """HITL confirmation request model."""
+
+    session_id: str = Field(..., description="Session identifier")
+    final_query: str = Field(..., description="Final confirmed/modified query")
+    user_response: str | None = Field(default=None, description="Optional user feedback")
+
+
+class HITLConfirmResponse(BaseModel):
+    """HITL confirmation response model."""
+
+    session_id: str = Field(..., description="Session identifier")
+    status: str = Field(..., description="Session status")
+    final_query: str = Field(..., description="Final query to be processed")
+    message: str = Field(..., description="Response message")
